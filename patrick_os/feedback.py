@@ -36,6 +36,8 @@ SURFACE = "surface"
 DELETION = "deletion"
 INSERTION = "insertion"
 REWRITE = "rewrite"
+REJECTION = "rejection"
+CORRECTION = "correction"
 
 ESCALATION_THRESHOLD = 2
 
@@ -315,14 +317,8 @@ def propose_rule(edit):
     return None
 
 
-def add(*, original, edited, skill=None, channel=None, project=None, run_id=None,
-        note=None, base=None):
-    """Record one correction. Classifies but never writes a voice rule."""
-    edits = diff(original, edited)
-    if not edits:
-        raise FeedbackError("original and edited versions are identical; nothing to learn")
-    history = load_all(base)
-    entry = {
+def _blank_entry(skill, channel, project, run_id, note, base):
+    return {
         "id": _next_id(base),
         "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "skill": skill,
@@ -334,6 +330,92 @@ def add(*, original, edited, skill=None, channel=None, project=None, run_id=None
         "edits": [],
         "proposals": [],
     }
+
+
+def add_rejection(*, output, reason, skill=None, channel=None, project=None,
+                  run_id=None, base=None):
+    """An output Patrick threw away rather than edited.
+
+    A rejection has no edited version to diff against, so the signal is the
+    stated reason. It escalates on repetition exactly like an edit does: the
+    first time Patrick rejects something for a given reason, that is one data
+    point, not a rule.
+    """
+    if not (reason or "").strip():
+        raise FeedbackError("a rejection needs a reason; the reason is the whole signal")
+    entry = _blank_entry(skill, channel, project, run_id, reason, base)
+    edit = {
+        "kind": REJECTION,
+        "removed": [output.strip()[:2000]],
+        "added": [],
+        "removed_words": sorted(set(_content_words([reason]))),
+        "added_words": [],
+        "signature": f"rejection:{'|'.join(sorted(set(_content_words([reason])))[:6])}",
+        "reason": reason,
+    }
+    scope, occurrences, rationale = escalate(
+        edit, load_all(base), skill=skill, channel=channel, project=project
+    )
+    edit.update({"scope": scope, "occurrences": occurrences, "rationale": rationale})
+    entry["edits"].append(edit)
+    if scope != "local":
+        entry["proposals"].append({
+            "scope": scope, "rule": reason.strip().rstrip(".") + ".",
+            "signature": edit["signature"], "occurrences": occurrences,
+            "rationale": rationale, "status": "proposed",
+        })
+    entry["status"] = "proposed" if entry["proposals"] else "recorded-local"
+    save_entry(entry, base)
+    return entry
+
+
+def add_correction(*, correction, skill=None, channel=None, project=None,
+                   scope=None, base=None):
+    """An explicit instruction from Patrick: "stop naming the day of the week".
+
+    This is the one intake path that proposes a rule on first sight, and the
+    reason is not a loosened standard -- it is that the generalizing was done by
+    the human. The repetition threshold exists to stop *Patrick OS* inferring a
+    rule from one observation. It has no business second-guessing a rule Patrick
+    stated outright.
+    """
+    if not (correction or "").strip():
+        raise FeedbackError("a correction needs text")
+    entry = _blank_entry(skill, channel, project, None, correction, base)
+    if scope is None:
+        if skill:
+            scope = f"skill:{skill}"
+        elif channel:
+            scope = f"channel:{channel}"
+        elif project:
+            scope = f"project:{project}"
+        else:
+            scope = "global"
+    entry["edits"].append({
+        "kind": CORRECTION, "removed": [], "added": [correction.strip()],
+        "removed_words": [], "added_words": sorted(set(_content_words([correction]))),
+        "signature": f"correction:{'|'.join(sorted(set(_content_words([correction])))[:6])}",
+        "scope": scope, "occurrences": 1,
+        "rationale": "stated explicitly by the human; no repetition threshold applies",
+    })
+    entry["proposals"].append({
+        "scope": scope, "rule": correction.strip(),
+        "signature": entry["edits"][0]["signature"], "occurrences": 1,
+        "rationale": "stated explicitly by the human", "status": "proposed",
+    })
+    entry["status"] = "proposed"
+    save_entry(entry, base)
+    return entry
+
+
+def add(*, original, edited, skill=None, channel=None, project=None, run_id=None,
+        note=None, base=None):
+    """Record one correction. Classifies but never writes a voice rule."""
+    edits = diff(original, edited)
+    if not edits:
+        raise FeedbackError("original and edited versions are identical; nothing to learn")
+    history = load_all(base)
+    entry = _blank_entry(skill, channel, project, run_id, note, base)
     for edit in edits:
         scope, occurrences, rationale = escalate(
             edit, history, skill=skill, channel=channel, project=project

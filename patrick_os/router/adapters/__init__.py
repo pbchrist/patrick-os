@@ -29,6 +29,17 @@ def get(name):
     return importlib.import_module(REGISTRY[name], __name__)
 
 
-def complete(provider, prompt, *, timeout=120):
-    """Send ``prompt`` to ``provider``. Only ever called from an --execute path."""
-    return get(provider.adapter).complete(provider, prompt, timeout=timeout)
+def complete(provider, prompt, *, timeout=120, workdir=None):
+    """Send ``prompt`` to ``provider``. Only ever called from an --execute path.
+
+    ``workdir`` is where a subprocess-backed provider is allowed to touch the
+    filesystem. Agentic providers have file tools and will use them: a real run
+    of ``recruiter-outreach`` had the worker write its draft to the repository
+    root. The runner owns artifact placement, so the worker is given a sandbox.
+    """
+    module = get(provider.adapter)
+    try:
+        return module.complete(provider, prompt, timeout=timeout, workdir=workdir)
+    except TypeError:
+        # HTTP adapters have no filesystem to contain.
+        return module.complete(provider, prompt, timeout=timeout)

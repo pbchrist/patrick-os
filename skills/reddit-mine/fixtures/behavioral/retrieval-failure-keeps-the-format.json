@@ -1,0 +1,7 @@
+{
+  "name": "retrieval-failure-keeps-the-format",
+  "provenance": "A real execute on 2026-09-03 hit Reddit's anti-bot challenge. The worker correctly refused to fabricate quotes -- but replied with a prose status message instead of the declared report, so every structural check fired and a correct refusal was indistinguishable from a broken run. The skill now requires the format to survive a retrieval failure.",
+  "expect_verdict": "clean",
+  "expect_defects": [],
+  "output": "Hypothesis: Recruiters can tell AI-written outreach and it lowers reply rates.\nFalsifier: recruiters reporting equal or better reply rates on AI-drafted outreach.\n\nSupports\n- none collected: Reddit returned an anti-bot challenge (\"Prove your humanity\") for logged-out reads on 2026-09-03, so no threads in the window were read.\n\nContradicts\nnone found in window\n\nAdjacent\nnone found in window\n\nAuthor count: 0 distinct authors.\n\nVerdict: insufficient evidence\n\nNext evidence: a logged-out read that completes, or a manual pass through the window by a human.\n"
+}

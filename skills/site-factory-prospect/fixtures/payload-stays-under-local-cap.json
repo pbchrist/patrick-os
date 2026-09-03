@@ -1,0 +1,15 @@
+{
+  "name": "payload-stays-under-local-cap",
+  "_note": "This skill routes to local-qwen, which declares max_request_bytes 24000. A work order over that is rejected at routing time and the run silently moves to a slower provider. Fail here instead.",
+  "inputs": {
+    "business_name": "Sunrise Dentistry",
+    "claimed_url": "https://example.invalid",
+    "fetch_status": "ok",
+    "observations": "The homepage testimonial carousel repeats one review card three times.",
+    "identity_signals": "Two name tokens plus a footer phone match."
+  },
+  "expect": {
+    "max_payload_bytes": 20000,
+    "route_provider": "local-qwen"
+  }
+}

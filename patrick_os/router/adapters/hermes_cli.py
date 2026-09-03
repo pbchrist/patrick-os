@@ -18,6 +18,11 @@ Patrick OS builds the invocation this CLI actually documents, and treats the
 extra flags as per-provider `extra_args` in `config/routes.json` -- data, not
 code -- so a Hermes upgrade that restores them is a config edit.
 
+The subprocess also runs with ``cwd`` set to the run's own directory. Hermes is
+an agent with file tools and will use them: on a real ``recruiter-outreach``
+execute it wrote its draft to the Patrick OS repository root. The runner owns
+where artifacts go, so the worker gets a sandbox instead of the working tree.
+
 `--ignore-rules` and `--ignore-user-config` are included by default because
 Hermes' own help describes them as the isolation flags for "third-party
 integrations": without them a Patrick OS work order would silently inherit
@@ -64,7 +69,7 @@ def build_argv(provider, prompt):
     return argv
 
 
-def complete(provider, prompt, *, timeout=120):
+def complete(provider, prompt, *, timeout=120, workdir=None):
     size = len(prompt.encode("utf-8"))
     if size > MAX_PROMPT_BYTES:
         raise TransportError(
@@ -73,6 +78,7 @@ def complete(provider, prompt, *, timeout=120):
         )
     completed = subprocess.run(
         build_argv(provider, prompt),
+        cwd=str(workdir) if workdir else None,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

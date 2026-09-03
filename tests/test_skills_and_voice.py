@@ -207,6 +207,46 @@ class FailoverTest(TempRootTest):
         self.assertIn("hermes-copilot", str(caught.exception))
 
 
+class ContainmentTest(TempRootTest):
+    def test_worker_gets_a_sandbox_directory_not_the_working_tree(self):
+        """Agentic providers have file tools and will use them. On a real
+        recruiter-outreach execute, the worker wrote its draft to the repository
+        root. The runner owns artifact placement."""
+        self.write_skill("demo", task_class="draft")
+        skill = skills.load_skill("demo", self.root)
+        seen = {}
+
+        def transport(prompt, provider):
+            return "text"
+
+        record = runner.run(skill, {"topic": "x"}, execute=True, base=self.root,
+                            transport=transport)
+        sandbox = self.root / "runs" / record["run_id"] / "worker"
+        self.assertTrue(sandbox.is_dir())
+
+    def test_files_the_worker_writes_are_recorded_not_silently_dropped(self):
+        """A worker that wrote files did something the run record must show, even
+        though the sandbox keeps it harmless."""
+        self.write_skill("demo", task_class="draft")
+        skill = skills.load_skill("demo", self.root)
+        out_dir = self.root / "runs" / "fixed"
+
+        def transport(prompt, provider):
+            (out_dir / "worker" / "draft-the-worker-saved.md").write_text("stray")
+            return "text"
+
+        record = runner.run(skill, {"topic": "x"}, execute=True, base=self.root,
+                            transport=transport, out_dir=out_dir)
+        self.assertEqual(record["worker_wrote_files"], ["draft-the-worker-saved.md"])
+
+    def test_a_clean_run_records_no_stray_files(self):
+        self.write_skill("demo", task_class="draft")
+        skill = skills.load_skill("demo", self.root)
+        record = runner.run(skill, {"topic": "x"}, execute=True, base=self.root,
+                            transport=lambda p, provider: "text")
+        self.assertNotIn("worker_wrote_files", record)
+
+
 class ShippedSkillsTest(unittest.TestCase):
     """Properties every skill in this repository must hold, now and after edits."""
 

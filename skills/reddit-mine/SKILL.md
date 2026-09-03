@@ -69,6 +69,13 @@ permalink, and an explicit list of the readings the evidence does *not* support.
 1. Restate `pain_hypothesis` as a claim that could be shown false, and write down
    what evidence would falsify it. Both go in the report header.
 2. Read threads in r/{{ subreddit }} from the last {{ window_days }} days.
+   **If you cannot read them** — anti-bot challenge, rate limit, no retrieval tool
+   available to you, any reason — stop here and emit the declared report format
+   with every section present, `Author count: 0`, and
+   `Verdict: insufficient evidence`, naming the retrieval failure verbatim under
+   Supports. Do not emit prose about what you attempted, and do not reconstruct a
+   single quote from memory. A retrieval failure is a fact about the retrieval,
+   and the report still has to be a report (G-009).
 3. For every comment that bears on the hypothesis, capture verbatim text, author
    handle, permalink, and date. Never paraphrase at capture time.
 4. Sort into three buckets, and keep all three in the output:
@@ -91,7 +98,9 @@ Hypothesis, Falsifier, Supports, Contradicts, Adjacent, Author count, Verdict,
 Competing readings, Next evidence.
 
 Verdict is exactly one of: `supported`, `contradicted`, `mixed`,
-`insufficient evidence`.
+`insufficient evidence`. A run that could not read the subreddit is
+`insufficient evidence` in the normal format — not a status message, not an
+apology, and not a summary of the attempt.
 
 ## Quality checks
 

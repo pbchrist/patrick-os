@@ -65,6 +65,11 @@ def compose(skill, bound_inputs, *, base=None):
     lines.append("*how the output must read*. Where they conflict, stop and escalate")
     lines.append("rather than choosing one.")
     lines.append("")
+    lines.append("Return the finished artifact as your reply, in full. Do not write it")
+    lines.append("to a file, do not summarise it, and do not describe what you did --")
+    lines.append("Patrick OS captures your reply and owns where it is stored. A summary")
+    lines.append("of the artifact is not the artifact.")
+    lines.append("")
 
     lines.append(f"## Voice rules ({len(rules)}, most general first)")
     lines.append("")
@@ -173,6 +178,9 @@ def run(skill, provided, *, execute=False, base=None, table=None, out_dir=None,
     attempts = []
     text = None
     provider = None
+    # Anything the worker writes to disk lands here, not in the working tree.
+    sandbox = directory / "worker"
+    sandbox.mkdir(exist_ok=True)
     for candidate in decision.candidates:
         provider = candidate.provider
         try:
@@ -181,7 +189,8 @@ def run(skill, provided, *, execute=False, base=None, table=None, out_dir=None,
             else:
                 from .router import adapters
 
-                text = adapters.complete(provider, planned["work_order"])
+                text = adapters.complete(provider, planned["work_order"],
+                                         workdir=sandbox)
             attempts.append({"provider": provider.key, "ok": True})
             break
         except TRANSPORT_FAILURES as error:
@@ -203,6 +212,9 @@ def run(skill, provided, *, execute=False, base=None, table=None, out_dir=None,
     (directory / "output.md").write_text(text, encoding="utf-8")
     record["provider"] = provider.key
     record["output_path"] = str(directory / "output.md")
+    stray = sorted(p.name for p in sandbox.iterdir())
+    if stray:
+        record["worker_wrote_files"] = stray
     if skill.is_outward:
         record["note"] = (
             "Outward-facing output written to disk as a DRAFT. Patrick OS has no send "

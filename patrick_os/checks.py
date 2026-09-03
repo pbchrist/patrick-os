@@ -237,15 +237,31 @@ DATE = re.compile(r"\b(?:\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{2,4}|"
                   re.IGNORECASE)
 
 
+NO_EVIDENCE_LINE = re.compile(r"^\s*[-*]?\s*(?:none\b|no\s+(?:quotes?|evidence|threads?))",
+                              re.IGNORECASE)
+
+
 @check("quotes_are_sourced", BLOCKING)
 def quotes_are_sourced(text, config):
     """C-003/C-004. An undated, unlinked Reddit quote is unusable six weeks later
-    and unverifiable today."""
+    and unverifiable today.
+
+    Two exemptions, both learned from false positives on real output:
+    a line that explicitly records the absence of evidence is not a quote, and a
+    short quoted phrase is a term being named ("Prove your humanity"), not a
+    mined comment. A mined comment is a sentence.
+    """
+    minimum_words = int(config.get("min_quote_words", 5))
     findings = []
     for block in config.get("sections", [None]):
         body = section_text(text, block) if block else text
         for line in body.split("\n"):
-            if not CITED_QUOTE.search(line):
+            if NO_EVIDENCE_LINE.match(line):
+                continue
+            quotes = CITED_QUOTE.findall(line)
+            if not quotes:
+                continue
+            if all(len(q.split()) < minimum_words for q in quotes):
                 continue
             window = line
             index = body.find(line)

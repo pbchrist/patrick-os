@@ -58,10 +58,20 @@ global  ->  channel:<name>  ->  project:<name>  ->  skill:<slug>
 Move it under `## Retired` in its file. Never delete it, and never reuse its id —
 old outputs must stay explainable, and `next_rule_id` scans retired ids too.
 
-## What the corpus intake should collect
+## Corpus intake — all four types have a path
 
-When the real corpus arrives, the ingest wants, per item: the draft Patrick OS
-(or anything else) produced, the version Patrick actually sent, the channel, the
-project, and — where he said it — why. `patrick feedback add --original X
---edited Y --skill S --channel C` is the intake path, and it already refuses to
-generalize anything it has only seen once.
+| Corpus type | Command | Escalation |
+|---|---|---|
+| An **edit** — draft vs. what was sent | `patrick feedback add --original X --edited Y --skill S --channel C` | Local on first sight; escalates on repetition |
+| A **rejected output** — thrown away, not edited | `patrick feedback reject-output --output X --reason "..." --skill S` | Local on first sight; escalates on repetition of the reason |
+| An **explicit correction** — Patrick states a rule | `patrick feedback correct --text "..." --channel C` | Proposed immediately |
+| A **real output** worth keeping as a standard | Add it as a behavioral fixture with `expect_verdict: clean` | n/a — it becomes a regression test |
+
+The asymmetry is deliberate. The repetition threshold exists to stop *Patrick OS*
+inferring a rule from one observation. It has no business second-guessing a rule
+Patrick stated outright, so `feedback correct` proposes on the first pass. What
+it still does not do is *apply* anything — promotion is a separate human verb in
+every case.
+
+Nothing here is bulk intake yet. Each command takes one item. Ingesting a real
+corpus of hundreds of items wants a batch path that does not exist.

@@ -1,0 +1,34 @@
+{
+  "channel": "linkedin",
+  "created": "2026-09-03T21:06:55+00:00",
+  "edits": [
+    {
+      "added": [],
+      "added_words": [],
+      "kind": "rejection",
+      "occurrences": 1,
+      "rationale": "seen 1 time; a correction is local until it repeats (2 needed)",
+      "reason": "The counterexample was hypothetical rather than a real cited case",
+      "removed": [
+        "Angle: Counterexample (AI can reinforce existing bias if trained on skewed data)\n\nWhy worth posting: This introduces an important limitation (mechanism) absent from the post and counters the implied claim that AI screening is inherently unbiased.\n\nDraft:\nBlind AI screening omits names and photos, but models can still reflect bias present in historical hiring data. For example, an AI trained on resumes from a company with past patterns of bias may replicate and even reinforce those patterns, despite anonymized inputs. Success depends on both data quality and how outcomes are measured. Removing bias isn\u2019t automatic; it requires ongoing validation of model performance.\n\nChecks:\n- 4 sentences.\n- Does not open with author's name or \"Great post\".\n- No emoji, no \"Thoughts?\", no listicles.\n- No unsourced statistics.\n- Introduces mechanism (data quality and feedback, unmentioned in post).\n- Does not mention Patrick\u2019s products."
+      ],
+      "removed_words": [
+        "case",
+        "cited",
+        "counterexample",
+        "hypothetical",
+        "rather",
+        "real"
+      ],
+      "scope": "local",
+      "signature": "rejection:case|cited|counterexample|hypothetical|rather|real"
+    }
+  ],
+  "id": "F-20260903-004",
+  "note": "The counterexample was hypothetical rather than a real cited case",
+  "project": null,
+  "proposals": [],
+  "run_id": null,
+  "skill": "linkedin-reply",
+  "status": "recorded-local"
+}

@@ -1,0 +1,45 @@
+{
+  "channel": "linkedin",
+  "created": "2026-09-03T21:06:55+00:00",
+  "edits": [
+    {
+      "added": [
+        "Never open a reply by restating the post's own claim back to the poster."
+      ],
+      "added_words": [
+        "back",
+        "claim",
+        "never",
+        "open",
+        "own",
+        "post's",
+        "poster",
+        "reply",
+        "restating"
+      ],
+      "kind": "correction",
+      "occurrences": 1,
+      "rationale": "stated explicitly by the human; no repetition threshold applies",
+      "removed": [],
+      "removed_words": [],
+      "scope": "channel:linkedin",
+      "signature": "correction:back|claim|never|open|own|post's"
+    }
+  ],
+  "id": "F-20260903-003",
+  "note": "Never open a reply by restating the post's own claim back to the poster.",
+  "project": null,
+  "proposals": [
+    {
+      "occurrences": 1,
+      "rationale": "stated explicitly by the human",
+      "rule": "Never open a reply by restating the post's own claim back to the poster.",
+      "scope": "channel:linkedin",
+      "signature": "correction:back|claim|never|open|own|post's",
+      "status": "proposed"
+    }
+  ],
+  "run_id": null,
+  "skill": null,
+  "status": "proposed"
+}

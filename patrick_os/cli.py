@@ -159,7 +159,44 @@ def cmd_route(args):
     return 0 if decision.chosen else 1
 
 
+def _print_feedback(entry):
+    print(f"recorded {entry['id']}  status={entry['status']}")
+    for edit in entry["edits"]:
+        print(f"  {edit['kind']:10} scope={edit['scope']:22} {edit['rationale']}")
+    if entry["proposals"]:
+        print("\nproposals (nothing applied yet):")
+        for index, proposal in enumerate(entry["proposals"]):
+            print(f"  [{index}] {proposal['scope']}: {proposal['rule']}")
+        print("\nThe scope above is derived from where the correction repeated and is")
+        print("usually right. The wording is phrased mechanically from the diff and")
+        print("usually is not -- rewrite it when you promote:")
+        print(f"  patrick feedback promote {entry['id']} --text \"...\"")
+    else:
+        print("\nNo rule proposed. A correction stays local until it repeats "
+              "in another context.")
+    return 0
+
+
 def cmd_feedback(args):
+    if args.action == "reject-output":
+        entry = feedback.add_rejection(
+            output=_read(args.output), reason=args.reason, skill=args.skill,
+            channel=args.channel, project=args.project, run_id=args.run, base=args.root)
+        return _print_feedback(entry)
+
+    if args.action == "correct":
+        entry = feedback.add_correction(
+            correction=args.text, skill=args.skill, channel=args.channel,
+            project=args.project, scope=args.scope, base=args.root)
+        print(f"recorded {entry['id']}  status={entry['status']}")
+        print("A correction you stated outright is proposed immediately -- the")
+        print("repetition threshold exists to stop Patrick OS inferring rules, not")
+        print("to second-guess yours. Review the scope, then:")
+        print(f"  patrick feedback promote {entry['id']}")
+        for index, proposal in enumerate(entry["proposals"]):
+            print(f"  [{index}] {proposal['scope']}: {proposal['rule']}")
+        return 0
+
     if args.action == "add":
         entry = feedback.add(
             original=_read(args.original),
@@ -171,9 +208,7 @@ def cmd_feedback(args):
             note=args.note,
             base=args.root,
         )
-        print(f"recorded {entry['id']}  status={entry['status']}")
-        for edit in entry["edits"]:
-            print(f"  {edit['kind']:9} scope={edit['scope']:22} {edit['rationale']}")
+        return _print_feedback(entry)
         if entry["proposals"]:
             print("\nproposals (nothing applied yet):")
             for index, proposal in enumerate(entry["proposals"]):
@@ -351,7 +386,8 @@ def build_parser():
     p.set_defaults(func=cmd_route)
 
     p = sub.add_parser("feedback", help="record corrections and promote them into rules")
-    p.add_argument("action", choices=["add", "list", "show", "promote", "reject"])
+    p.add_argument("action", choices=["add", "reject-output", "correct", "list",
+                                      "show", "promote", "reject"])
     p.add_argument("id", nargs="?")
     p.add_argument("--original")
     p.add_argument("--edited")
@@ -363,7 +399,8 @@ def build_parser():
     p.add_argument("--index", type=int, default=0)
     p.add_argument("--scope", help="override the classified scope when promoting")
     p.add_argument("--text", help="override the proposed rule text when promoting")
-    p.add_argument("--reason")
+    p.add_argument("--reason", help="why an output was rejected, or why a proposal was")
+    p.add_argument("--output", help="the rejected output file, for reject-output")
     p.set_defaults(func=cmd_feedback)
 
     p = sub.add_parser("judge", help="check an output against a skill's quality bar")
@@ -405,6 +442,10 @@ def main(argv=None):
     if args.command == "feedback":
         if args.action == "add" and not (args.original and args.edited):
             parser.error("feedback add requires --original and --edited")
+        if args.action == "reject-output" and not (args.output and args.reason):
+            parser.error("feedback reject-output requires --output and --reason")
+        if args.action == "correct" and not args.text:
+            parser.error("feedback correct requires --text")
         if args.action in {"show", "promote", "reject"} and not args.id:
             parser.error(f"feedback {args.action} requires an id")
     if args.command == "decision" and args.action == "add" and not args.title:

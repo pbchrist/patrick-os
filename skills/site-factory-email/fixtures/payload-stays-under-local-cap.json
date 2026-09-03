@@ -1,0 +1,9 @@
+{
+  "name": "payload-stays-under-local-cap",
+  "_note": "This skill's work order embeds the whole site-factory truth record and is the largest in the repo. local-qwen declares max_request_bytes 24000 (the measured cap on the narrative-sourcing tunnel). If the truth record grows past it, local-qwen is silently rejected and the route changes with nobody noticing. 20000 leaves headroom and fails loudly first.",
+  "inputs": {
+    "prospect_record": "Identity: medium\nFetch status: ok\nObservations\n- The review card reading \"Dana Reyes\" appears three times.",
+    "offer": "a Narrative Decision Audit, $500"
+  },
+  "expect": { "max_payload_bytes": 20000 }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "prose-status-instead-of-report",
+  "provenance": "Verbatim shape of what the worker actually returned on the 2026-09-03 execute. The refusal was correct; the format was not. Kept as a negative fixture so a correct refusal in the wrong shape keeps failing.",
+  "expect_verdict": "blocked",
+  "expect_defects": ["require_sections", "verdict_in_vocabulary"],
+  "output": "**Summary of Findings and Progress**\n\n- I restated the pain hypothesis and outlined the falsification criteria.\n- I attempted to access the r/recruiting subreddit's newest posts.\n- The Reddit site blocked access due to anti-bot protections, preventing thread and comment collection.\n\n**What Is Missing**\n- No evidence was gathered, so no Supports, Contradicts, or Adjacent comments exist.\n\n**Final Status**\n- Unable to progress past the prerequisite step. No evidence collected.\n"
+}

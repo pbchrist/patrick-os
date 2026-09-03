@@ -31,7 +31,7 @@
       "command": "hermes",
       "hermes_provider": "copilot",
       "isolate": true,
-      "max_turns": 1,
+      "max_turns": 4,
       "extra_args": [],
       "local": false,
       "capabilities": ["text", "json", "judge"],

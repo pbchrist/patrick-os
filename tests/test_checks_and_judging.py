@@ -62,6 +62,19 @@ class FactIntegrityTest(unittest.TestCase):
                    'https://reddit.com/r/recruiting/comments/aaa\n')
         self.assertEqual(self.fire("quotes_are_sourced", sourced), [])
 
+    def test_a_named_phrase_is_not_treated_as_a_mined_quote(self):
+        """False positive from a real run: a retrieval-failure line naming the
+        anti-bot challenge \"Prove your humanity\" was flagged as an unsourced
+        quote. A mined comment is a sentence; a short phrase is a term."""
+        text = ('Supports\n- none collected: Reddit returned an anti-bot challenge '
+                '("Prove your humanity") for logged-out reads on 2026-09-03.\n')
+        self.assertEqual(self.fire("quotes_are_sourced", text), [])
+
+    def test_a_real_unsourced_quote_is_still_caught_alongside_that_exemption(self):
+        text = ('Supports\n- "I can spot the ChatGPT cadence in two seconds and I '
+                'archive it immediately"\n')
+        self.assertTrue(self.fire("quotes_are_sourced", text))
+
     def test_email_address_is_caught(self):
         self.assertTrue(self.fire("forbid_email_address", "reach me at a@b.co"))
 
