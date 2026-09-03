@@ -3,6 +3,17 @@ name: skill-slug
 version: 1
 purpose: One sentence. What repeated work does this remove?
 task_class: research
+# Where in the commercial pipeline this sits. Not the same as task_class, which
+# only decides which model runs it. See docs/ARCHITECTURE.md.
+# One of: signal, qualification, diagnosis, mechanism-selection, sales-artifact,
+#         outreach, result, learning
+stage: signal
+# Which interventions this serves, from config/mechanisms.json -- or declare
+# mechanism_agnostic when it serves any. One or the other is required: a skill
+# that says nothing gets assumed into the only mechanism anybody built.
+mechanism_agnostic: true
+# Cheapest first: note, audit, pilot, build. Omit if the skill commits nothing.
+investment_tier: note
 channel: null
 project: null
 outputs: report

@@ -42,11 +42,12 @@ class SkillError(ValueError):
 
 
 class Skill:
-    def __init__(self, slug, path, meta, body):
+    def __init__(self, slug, path, meta, body, base=None):
         self.slug = slug
         self.path = path
         self.meta = meta
         self.body = body
+        self._base = base
 
     # -- declared metadata ------------------------------------------------
     @property
@@ -128,6 +129,29 @@ class Skill:
     def section(self, title):
         return self.sections().get(title, "")
 
+    # -- pipeline position -------------------------------------------------
+    @property
+    def stage(self):
+        """Where in the commercial pipeline this sits. Separate from task_class,
+        which is a routing concern."""
+        return self.meta.get("stage")
+
+    @property
+    def mechanisms(self):
+        """Intervention types this skill can serve. Empty means mechanism-agnostic."""
+        declared = self.meta.get("mechanisms")
+        if isinstance(declared, str):
+            return [declared]
+        return list(declared or [])
+
+    @property
+    def mechanism_agnostic(self):
+        return bool(self.meta.get("mechanism_agnostic", False))
+
+    @property
+    def investment_tier(self):
+        return self.meta.get("investment_tier")
+
     @property
     def output_checks(self):
         return self.meta.get("output_checks") or []
@@ -201,6 +225,56 @@ class Skill:
             raise SkillError(f"{self.slug}: " + "; ".join(problems))
         return bound
 
+    def _pipeline_problems(self):
+        """A skill must say where in the commercial pipeline it sits.
+
+        Not decoration: without it, nothing can tell that the two Site Factory
+        skills cover two of eight stages and one of six mechanisms, and the
+        system quietly behaves as though they are the whole business.
+        """
+        from . import pipeline
+
+        problems = []
+        if not self.stage:
+            problems.append(
+                "missing front-matter field: stage (one of: "
+                + ", ".join(pipeline.STAGES) + ")"
+            )
+        elif self.stage not in pipeline.STAGES:
+            problems.append(
+                f"unknown stage {self.stage!r}; expected one of: "
+                + ", ".join(pipeline.STAGES)
+            )
+        if self.investment_tier and self.investment_tier not in pipeline.TIERS:
+            problems.append(
+                f"unknown investment_tier {self.investment_tier!r}; expected one of: "
+                + ", ".join(pipeline.TIERS)
+            )
+        if self.mechanisms and self.mechanism_agnostic:
+            problems.append(
+                "declares both mechanisms and mechanism_agnostic: true; pick one"
+            )
+        if not self.mechanisms and not self.mechanism_agnostic:
+            problems.append(
+                "declares neither mechanisms nor mechanism_agnostic: true -- a skill "
+                "that does not say which interventions it serves is assumed to serve "
+                "the only one anybody built, which is the failure this field exists "
+                "to prevent"
+            )
+        if self.mechanisms:
+            try:
+                registry = pipeline.load_mechanisms(base=self._base)
+            except pipeline.PipelineError as error:
+                problems.append(str(error))
+            else:
+                for key in self.mechanisms:
+                    if key not in registry:
+                        problems.append(
+                            f"unknown mechanism {key!r}; declared in "
+                            f"config/mechanisms.json: {', '.join(registry.keys())}"
+                        )
+        return problems
+
     def validate(self):
         """Return a list of problem strings. Empty list means the skill is well-formed."""
         problems = []
@@ -224,6 +298,7 @@ class Skill:
             )
         if not self.dry_run_default:
             problems.append("dry_run_default must be true; dry run is the default everywhere")
+        problems.extend(self._pipeline_problems())
         if not self.fixtures():
             problems.append("no regression fixtures under fixtures/")
         if self.output_checks:
@@ -266,7 +341,7 @@ def load_skill(slug, base=None):
         meta, body = frontmatter.load(text)
     except frontmatter.FrontmatterError as error:
         raise SkillError(f"{file}: {error}") from error
-    return Skill(slug, directory, meta, body)
+    return Skill(slug, directory, meta, body, base=base)
 
 
 def list_skills(base=None):

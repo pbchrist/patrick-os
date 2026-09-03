@@ -15,6 +15,8 @@ name: {slug}
 version: 1
 purpose: test skill
 task_class: {task_class}
+stage: {stage}
+mechanism_agnostic: true
 channel: {channel}
 project: {project}
 outputs: report
@@ -58,17 +60,20 @@ class TempRootTest(unittest.TestCase):
         self.root = Path(tempfile.mkdtemp(prefix="patrick-os-test-"))
         self.addCleanup(shutil.rmtree, self.root, True)
         for sub in ("skills", "voice/channels", "voice/projects", "voice/skills",
+                    "strategy/mechanisms", "strategy/segments", "strategy/projects",
                     "projects", "feedback/inbox", "decisions", "config", "runs"):
             (self.root / sub).mkdir(parents=True, exist_ok=True)
-        shutil.copy(REPO / "config" / "routes.json", self.root / "config" / "routes.json")
+        for name in ("routes.json", "mechanisms.json"):
+            shutil.copy(REPO / "config" / name, self.root / "config" / name)
 
     def write_skill(self, slug, *, task_class="research", channel="null",
-                    project="null", fixtures=None):
+                    project="null", stage="signal", fixtures=None):
         directory = self.root / "skills" / slug
         (directory / "fixtures").mkdir(parents=True, exist_ok=True)
         (directory / "SKILL.md").write_text(
             MINIMAL_SKILL.format(
-                slug=slug, task_class=task_class, channel=channel, project=project
+                slug=slug, task_class=task_class, channel=channel, project=project,
+                stage=stage
             ),
             encoding="utf-8",
         )

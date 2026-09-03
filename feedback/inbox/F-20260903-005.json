@@ -1,0 +1,56 @@
+{
+  "channel": null,
+  "created": "2026-09-03T22:26:42+00:00",
+  "edits": [
+    {
+      "added": [
+        "Do not select a web mechanism for a business whose only observable defects are cosmetic; cosmetic defects have never produced a reply."
+      ],
+      "added_words": [
+        "business",
+        "cosmetic",
+        "defects",
+        "mechanism",
+        "never",
+        "observable",
+        "only",
+        "produced",
+        "reply",
+        "select",
+        "web",
+        "whose"
+      ],
+      "evidence": "Site Factory teardown: all 5 benchmark businesses were qualified on cosmetic web defects; 0 produced a buyer, and 2 had no buyer at all (SF-12).",
+      "kind": "correction",
+      "occurrences": 1,
+      "rationale": "strategy lesson stated by the human from an observed result",
+      "removed": [],
+      "removed_words": [],
+      "scope": "mechanism:website",
+      "signature": "strategy:business|cosmetic|defects|mechanism|never|observable"
+    }
+  ],
+  "id": "F-20260903-005",
+  "layer": "strategy",
+  "note": "Site Factory teardown: all 5 benchmark businesses were qualified on cosmetic web defects; 0 produced a buyer, and 2 had no buyer at all (SF-12).",
+  "project": null,
+  "proposals": [
+    {
+      "layer": "strategy",
+      "occurrences": 1,
+      "promoted_at": "2026-09-03T22:26:43+00:00",
+      "promoted_namespace": "strategy",
+      "promoted_scope": "mechanism:website",
+      "promoted_text": "Do not select a web mechanism for a business whose only observable defects are cosmetic; cosmetic defects have never produced a reply.",
+      "rationale": "learned from: Site Factory teardown: all 5 benchmark businesses were qualified on cosmetic web defects; 0 produced a buyer, and 2 had no buyer at all (SF-12).",
+      "rule": "Do not select a web mechanism for a business whose only observable defects are cosmetic; cosmetic defects have never produced a reply.",
+      "rule_id": "M-004",
+      "scope": "mechanism:website",
+      "signature": "strategy:business|cosmetic|defects|mechanism|never|observable",
+      "status": "promoted"
+    }
+  ],
+  "run_id": null,
+  "skill": null,
+  "status": "promoted"
+}

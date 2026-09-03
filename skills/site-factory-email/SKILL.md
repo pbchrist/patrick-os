@@ -7,6 +7,10 @@ channel: email
 project: site-factory
 outputs: draft
 dry_run_default: true
+stage: outreach
+mechanisms:
+  - website
+investment_tier: audit
 sends: false
 min_quality: 3
 inputs:

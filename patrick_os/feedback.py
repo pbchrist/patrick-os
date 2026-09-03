@@ -39,6 +39,24 @@ REWRITE = "rewrite"
 REJECTION = "rejection"
 CORRECTION = "correction"
 
+# --- feedback layers ------------------------------------------------------
+# Three kinds of lesson, revised on different evidence and applied to different
+# places. Keeping them apart is what stops "we should stop chasing sub-$1M
+# dental practices" being filed as a note about em-dashes.
+#
+#   output    how the writing reads.     -> voice/     (promotable here)
+#   workflow  what the procedure does.   -> skills/    (human edits by hand)
+#   strategy  what is worth pursuing.    -> strategy/  (promotable here)
+OUTPUT = "output"
+WORKFLOW = "workflow"
+STRATEGY = "strategy"
+LAYERS = (OUTPUT, WORKFLOW, STRATEGY)
+
+LAYER_NAMESPACE = {OUTPUT: "voice", STRATEGY: "strategy"}
+
+# Strategy scopes are about the market, not the message.
+STRATEGY_SCOPE_KINDS = ("mechanism", "segment", "project")
+
 ESCALATION_THRESHOLD = 2
 
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
@@ -317,8 +335,11 @@ def propose_rule(edit):
     return None
 
 
-def _blank_entry(skill, channel, project, run_id, note, base):
+def _blank_entry(skill, channel, project, run_id, note, base, layer=OUTPUT):
+    if layer not in LAYERS:
+        raise FeedbackError(f"unknown layer {layer!r}; expected one of: {', '.join(LAYERS)}")
     return {
+        "layer": layer,
         "id": _next_id(base),
         "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "skill": skill,
@@ -365,6 +386,58 @@ def add_rejection(*, output, reason, skill=None, channel=None, project=None,
             "rationale": rationale, "status": "proposed",
         })
     entry["status"] = "proposed" if entry["proposals"] else "recorded-local"
+    save_entry(entry, base)
+    return entry
+
+
+def add_strategy(*, lesson, evidence, scope=None, mechanism=None, segment=None,
+                 project=None, base=None):
+    """A lesson about what is worth pursuing, learned from a RESULT.
+
+    Strategy feedback is not output feedback with a wider scope. It answers a
+    different question -- which opportunities and mechanisms deserve effort --
+    and it is revised by what happened, not by how something read. So it lands in
+    ``strategy/``, never in ``voice/``.
+
+    Evidence is mandatory. A strategy rule with no result behind it is a hunch,
+    and hunches are exactly what an evidence-grounded system must not accumulate.
+    """
+    if not (lesson or "").strip():
+        raise FeedbackError("a strategy lesson needs text")
+    if not (evidence or "").strip():
+        raise FeedbackError(
+            "a strategy lesson needs evidence: what result taught this? A strategy "
+            "rule with no result behind it is a hunch."
+        )
+    if scope is None:
+        if mechanism:
+            scope = f"mechanism:{mechanism}"
+        elif segment:
+            scope = f"segment:{segment}"
+        elif project:
+            scope = f"project:{project}"
+        else:
+            scope = "global"
+    kind = scope.partition(":")[0]
+    if scope != "global" and kind not in STRATEGY_SCOPE_KINDS:
+        raise FeedbackError(
+            f"strategy scope must be global or one of: {', '.join(STRATEGY_SCOPE_KINDS)}"
+        )
+    entry = _blank_entry(None, None, project, None, evidence, base, layer=STRATEGY)
+    entry["edits"].append({
+        "kind": CORRECTION, "removed": [], "added": [lesson.strip()],
+        "removed_words": [], "added_words": sorted(set(_content_words([lesson]))),
+        "signature": f"strategy:{'|'.join(sorted(set(_content_words([lesson])))[:6])}",
+        "scope": scope, "occurrences": 1,
+        "rationale": "strategy lesson stated by the human from an observed result",
+        "evidence": evidence,
+    })
+    entry["proposals"].append({
+        "scope": scope, "rule": lesson.strip(), "layer": STRATEGY,
+        "signature": entry["edits"][0]["signature"], "occurrences": 1,
+        "rationale": f"learned from: {evidence.strip()}", "status": "proposed",
+    })
+    entry["status"] = "proposed"
     save_entry(entry, base)
     return entry
 
@@ -471,13 +544,22 @@ def promote(entry_id, *, index=0, scope=None, text=None, base=None, verify=None)
 
     target_scope = scope or proposal["scope"]
     rule_text = text or proposal["rule"]
+    layer = proposal.get("layer") or entry.get("layer") or OUTPUT
+    if layer == WORKFLOW:
+        raise FeedbackError(
+            f"{entry_id} is workflow feedback: it changes what a procedure DOES, not "
+            "how an output reads. Edit the skill's Procedure section by hand and "
+            "commit it -- Patrick OS does not rewrite procedures automatically."
+        )
+    namespace = LAYER_NAMESPACE[layer]
 
-    path = voice.scope_path(target_scope, base)
+    path = voice.scope_path(target_scope, base, namespace)
     existed = path.is_file()
     before = path.read_text(encoding="utf-8") if existed else None
 
     rule_id = voice.append_rule(
-        target_scope, rule_text, source=f"feedback {entry_id}", base=base
+        target_scope, rule_text, source=f"feedback {entry_id}", base=base,
+        namespace=namespace,
     )
 
     if verify is None:
@@ -503,14 +585,17 @@ def promote(entry_id, *, index=0, scope=None, text=None, base=None, verify=None)
     proposal["promoted_scope"] = target_scope
     proposal["promoted_text"] = rule_text
     proposal["promoted_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    proposal["promoted_namespace"] = namespace
     entry["status"] = (
         "promoted"
         if all(p.get("status") == "promoted" for p in proposals)
         else "partially-promoted"
     )
     save_entry(entry, base)
-    _append_changelog(entry_id, rule_id, target_scope, rule_text, proposal, base)
-    return {"rule_id": rule_id, "scope": target_scope, "text": rule_text, "report": report}
+    _append_changelog(entry_id, rule_id, target_scope, rule_text, proposal, base,
+                      namespace)
+    return {"rule_id": rule_id, "scope": target_scope, "text": rule_text,
+            "namespace": namespace, "report": report}
 
 
 def reject(entry_id, *, index=0, reason=None, base=None):
@@ -526,7 +611,8 @@ def reject(entry_id, *, index=0, reason=None, base=None):
     return entry
 
 
-def _append_changelog(entry_id, rule_id, scope, text, proposal, base):
+def _append_changelog(entry_id, rule_id, scope, text, proposal, base,
+                      namespace="voice"):
     path = changelog_path(base)
     path.parent.mkdir(parents=True, exist_ok=True)
     if not path.is_file():
@@ -538,11 +624,13 @@ def _append_changelog(entry_id, rule_id, scope, text, proposal, base):
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     path.write_text(
         path.read_text(encoding="utf-8").rstrip("\n")
-        + f"\n\n## {stamp} — {rule_id} added to {scope}\n\n"
+        + f"\n\n## {stamp} — {rule_id} added to {namespace}/{scope}\n\n"
         + f"- Rule: {text}\n"
         + f"- Source: feedback {entry_id}\n"
         + f"- Occurrences before promotion: {proposal.get('occurrences')}\n"
         + f"- Why this scope: {proposal.get('rationale')}\n"
-        + f"- To revert: delete the `[{rule_id}]` line from `{voice.scope_path(scope, base).relative_to(root(base))}`\n",
+        + f"- Layer: {namespace}\n"
+        + f"- To revert: delete the `[{rule_id}]` line from "
+          f"`{voice.scope_path(scope, base, namespace).relative_to(root(base))}`\n",
         encoding="utf-8",
     )

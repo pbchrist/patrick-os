@@ -6,6 +6,9 @@ task_class: research.mine
 channel: reddit
 outputs: report
 dry_run_default: true
+stage: signal
+mechanism_agnostic: true
+investment_tier: note
 sends: false
 inputs:
   - name: subreddit

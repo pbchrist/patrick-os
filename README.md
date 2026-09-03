@@ -12,6 +12,24 @@ load. Every provider — a local Qwen server, Hermes, Anthropic, OpenAI — is a
 in `config/routes.json`, and routing is a pure function that resolves with no
 keys and no network. Claude is a worker inside this system, not the system.
 
+## Architecture
+
+The top-level model is the commercial pipeline, not any one workflow:
+
+```
+signals -> qualification -> diagnosis -> mechanism selection
+        -> sales artifact -> outreach -> result -> learning
+```
+
+**Site Factory is the executor for web-based interventions — it is not the
+decision engine.** Mechanism selection sits above it and can conclude that a
+non-web intervention, or no intervention, is what the evidence supports.
+
+`patrick pipeline` prints how much of that actually exists (currently 3 of 8
+stages). Full detail, including the interfaces future stages will need, is in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and `decisions/0006`. The
+Opportunity Engine is deliberately **not** built yet.
+
 ## Status
 
 v0.1.0 — spine complete, five skills, 116 checks passing.
@@ -39,7 +57,9 @@ No install. No virtualenv. No dependencies. Python 3.9 or newer.
 ./patrick route judge.copy    # explain a routing decision, calling nothing
 ./patrick run reddit-mine --input subreddit=recruiting --input pain_hypothesis='...'
 ./patrick judge site-factory-email --output draft.md   # deterministic checks
-./patrick test                # 152 checks
+./patrick pipeline            # stage and mechanism coverage
+./patrick voice --strategy    # rules about what is worth pursuing
+./patrick test                # 185 checks
 ```
 
 `patrick run` is a dry run: it composes the work order and resolves the route,
@@ -50,14 +70,16 @@ a file. **Nothing in v1 sends anything anywhere** — see decision 0004.
 
 | Directory    | Holds                                                           |
 |--------------|-----------------------------------------------------------------|
-| `voice/`     | Durable style rules, scoped global → channel → project → skill, each citing its evidence. Provisional. |
+| `voice/`     | Durable style rules — *how an output reads* — scoped global → channel → project → skill, each citing its evidence. Provisional. |
+| `strategy/`  | Rules about *what is worth pursuing*, scoped global → mechanism → segment → project. Evidence mandatory. |
 | `skills/`    | One directory per procedure. `SKILL.md` plus `fixtures/`.       |
 | `projects/`  | Per-project truth records. Facts and constraints, never procedure. |
 | `feedback/`  | Captured corrections, their classification, and the changelog of every rule learned. |
 | `schedules/` | Declarative recurring work. Names a skill; contains no logic.   |
 | `decisions/` | Things that stay decided.                                       |
 | `tests/`     | The unit suite. `patrick test` runs it alongside skill fixtures. |
-| `config/`    | `routes.json` — the whole model-routing policy.                 |
+| `config/`    | `routes.json` (model routing) and `mechanisms.json` (intervention types). |
+| `docs/`      | `ARCHITECTURE.md` — the pipeline, the three axes, and what is deliberately unbuilt. |
 | `runs/`      | Local run artifacts. Gitignored.                                |
 
 ## How the pieces fit
@@ -74,6 +96,11 @@ project facts ─────┘                                              �
                                             patrick feedback promote ──> one voice rule
                                                                           + changelog
 ```
+
+Feedback has three layers. `output` lessons (how it reads) promote into `voice/`;
+`strategy` lessons (what is worth pursuing) promote into `strategy/` and require
+evidence; `workflow` lessons are refused for promotion, because Patrick OS
+rewrites rules, not procedures.
 
 A correction seen **once** is local and never becomes a rule. Scope escalates on
 repetition across contexts — same skill, then project, then channel, then global.
@@ -111,7 +138,9 @@ repository existed. See decision 0005.
 
 ## Adding a skill
 
-1. `cp skills/_TEMPLATE.md skills/<slug>/SKILL.md` and fill in every section.
+1. `cp skills/_TEMPLATE.md skills/<slug>/SKILL.md` and fill in every section,
+   including `stage:` and either `mechanisms:` or `mechanism_agnostic: true` —
+   a skill that will not say where it sits in the pipeline fails validation.
 2. Write at least one fixture in `skills/<slug>/fixtures/`.
 3. `./patrick test <slug>`.
 

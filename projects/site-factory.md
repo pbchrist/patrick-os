@@ -82,6 +82,21 @@ daily cap plus bounce/complaint-rate circuit breakers.
 This closes SF-01 and SF-04 mechanically. It does **not** close SF-03, SF-05,
 SF-06, or SF-07, which are correctness defects rather than outbound controls.
 
+## Position in the architecture
+
+Site Factory is the **executor for the `website` mechanism** (see
+`config/mechanisms.json` and `decisions/0006`). It is not the top-level
+commercial decision engine, and the model "find a bad website → build a better
+website" is one abstraction too low.
+
+Mechanism selection sits above it. That stage does not exist yet, which is why
+SF-03 was possible at all: with no layer able to conclude "no web intervention is
+warranted", a crawler timeout could only come out the other side as a qualified
+rebuild at score 90.
+
+Its two skills cover `qualification` and `outreach` for one mechanism — 2 of 8
+stages, 1 of 6 mechanisms. `patrick pipeline` prints the rest.
+
 ## Integration boundary for Patrick OS
 
 Patrick OS **reads** this project and **writes nothing into it**. No file in

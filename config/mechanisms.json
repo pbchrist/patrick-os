@@ -1,0 +1,82 @@
+{
+  "_comment": [
+    "Intervention types Patrick OS can select between. A mechanism is WHAT gets",
+    "sold or delivered; it is not the same as the stage of work, and it is not the",
+    "same as which model runs the step.",
+    "",
+    "This registry exists so that no code has to know that a website rebuild is a",
+    "possible outcome. Site Factory is the executor for exactly one row here.",
+    "Adding a non-website intervention is an edit to this file, not to Python.",
+    "",
+    "status: 'available'  an executor exists and has been run",
+    "        'declared'   the mechanism is real but nothing here executes it yet",
+    "        'blocked'    an executor exists but is gated (see the project record)"
+  ],
+
+  "mechanisms": {
+    "website": {
+      "label": "Web-based intervention",
+      "description": "Rebuilds, landing pages, and fixes to a site's structure or copy.",
+      "executors": ["site-factory"],
+      "evidence_required": [
+        "the page was actually retrieved (fetch_status ok)",
+        "identity verified to at least medium confidence",
+        "an observable defect a person can point at"
+      ],
+      "tiers": ["note", "audit", "pilot", "build"],
+      "status": "blocked",
+      "_note": "Site Factory is the EXECUTOR for this mechanism, not the decision engine that chooses it. Both of its gates are NO-GO; see projects/site-factory.md."
+    },
+
+    "positioning": {
+      "label": "Positioning and claim repair",
+      "description": "Separating supported claims from aspirations and contradictions, and recommending what to preserve, eliminate, reposition, or test. The Narrative Decision Audit is this mechanism at the audit tier.",
+      "executors": [],
+      "evidence_required": [
+        "the claims the business currently makes, quoted",
+        "what the evidence actually supports",
+        "the contradiction between them, named"
+      ],
+      "tiers": ["note", "audit", "pilot"],
+      "status": "declared",
+      "_note": "Per Patrick's own positioning note this is the cash engine's repeatable offer, and it is not a website intervention. Nothing here executes it yet, which is exactly the gap a website-shaped system would never surface."
+    },
+
+    "messaging": {
+      "label": "Outbound messaging and sequence repair",
+      "description": "The messages themselves: what is claimed, what is cited, what is asked for.",
+      "executors": [],
+      "evidence_required": ["existing messages, verbatim", "a measured response rate"],
+      "tiers": ["note", "audit", "pilot"],
+      "status": "declared"
+    },
+
+    "pricing": {
+      "label": "Pricing and packaging",
+      "description": "What is charged, for what unit, at what commitment.",
+      "executors": [],
+      "evidence_required": ["current prices", "what was actually paid, not quoted"],
+      "tiers": ["note", "audit"],
+      "status": "declared"
+    },
+
+    "ops-automation": {
+      "label": "Operational automation",
+      "description": "Removing a repeated manual step. Patrick OS is itself an instance of this mechanism.",
+      "executors": [],
+      "evidence_required": ["the repeated step, observed more than once", "its cost in time"],
+      "tiers": ["note", "pilot", "build"],
+      "status": "declared"
+    },
+
+    "none": {
+      "label": "No intervention supported",
+      "description": "The diagnosis does not support selling anything yet. A first-class outcome, not a failure to decide.",
+      "executors": [],
+      "evidence_required": [],
+      "tiers": ["note"],
+      "status": "available",
+      "_note": "Mechanism selection must be able to conclude this, or it is not selection. Site Factory had no way to express it: SF-03 turned a crawler timeout into a qualified rebuild opportunity at score 90."
+    }
+  }
+}

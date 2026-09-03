@@ -19,7 +19,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import decisions, feedback, judging, runner, skills, testing, voice
+from . import decisions, feedback, judging, pipeline, runner, skills, testing, voice
 from .router import TaskSpec, resolve
 from .router import table as route_table
 
@@ -119,6 +119,17 @@ def cmd_run(args):
 
 
 def cmd_voice(args):
+    namespace = "strategy" if args.strategy else "voice"
+    if namespace == "strategy":
+        scopes = [args.scope] if args.scope else voice.all_scopes(args.root, namespace)
+        rules = voice.compose(scopes, args.root, namespace)
+        if not rules:
+            print(f"no strategy rules for scopes: {', '.join(scopes) or '(none)'}")
+            return 0
+        print(f"# {len(rules)} strategy rules  ({' -> '.join(scopes)})\n")
+        for rule in rules:
+            print(f"[{rule.id}] ({rule.scope}) {rule.text}")
+        return 0
     if args.skill:
         skill = skills.load_skill(args.skill, args.root)
         scopes = skill.voice_scopes
@@ -183,6 +194,19 @@ def cmd_feedback(args):
             output=_read(args.output), reason=args.reason, skill=args.skill,
             channel=args.channel, project=args.project, run_id=args.run, base=args.root)
         return _print_feedback(entry)
+
+    if args.action == "strategy":
+        entry = feedback.add_strategy(
+            lesson=args.text, evidence=args.evidence, scope=args.scope,
+            mechanism=args.mechanism, segment=args.segment, project=args.project,
+            base=args.root)
+        print(f"recorded {entry['id']}  layer=strategy  status={entry['status']}")
+        for index, proposal in enumerate(entry["proposals"]):
+            print(f"  [{index}] {proposal['scope']}: {proposal['rule']}")
+            print(f"       {proposal['rationale']}")
+        print(f"\nThis promotes into strategy/, not voice/. Review the scope, then:")
+        print(f"  patrick feedback promote {entry['id']}")
+        return 0
 
     if args.action == "correct":
         entry = feedback.add_correction(
@@ -305,6 +329,49 @@ def cmd_decision(args):
     return 0
 
 
+def cmd_pipeline(args):
+    """Show how much of the commercial pipeline actually has a skill behind it."""
+    found = skills.list_skills(args.root)
+    registry = pipeline.load_mechanisms(base=args.root)
+    report = pipeline.coverage(found, registry)
+    if args.json:
+        print(json.dumps(report, indent=2))
+        return 0
+
+    print("signals -> qualification -> diagnosis -> mechanism selection")
+    print("        -> sales artifact -> outreach -> result -> learning")
+    print()
+    print("STAGE COVERAGE")
+    empty = 0
+    for stage in pipeline.STAGES:
+        owners = report["by_stage"][stage]
+        marker = "  " if owners else "· "
+        if not owners:
+            empty += 1
+        print(f"{marker}{stage:20} {', '.join(owners) if owners else '(no skill)'}")
+        if args.verbose:
+            print(f"    {pipeline.STAGE_PURPOSE[stage]}")
+    print()
+    print("MECHANISM COVERAGE")
+    for key in registry.keys():
+        mechanism = registry[key]
+        owners = report["by_mechanism"].get(key) or []
+        print(f"  {key:16} {mechanism.status:10} "
+              f"{', '.join(owners) if owners else '(no skill)'}")
+    print()
+    agnostic = [s.slug for s in found if s.mechanism_agnostic]
+    print(f"{len(pipeline.STAGES) - empty}/{len(pipeline.STAGES)} stages have a skill; "
+          f"{empty} do not.")
+    print(f"mechanism-agnostic skills: {', '.join(agnostic) or 'none'}")
+    if report["unstaged"]:
+        print(f"UNSTAGED (will fail validation): {', '.join(report['unstaged'])}")
+    print()
+    print("The empty stages are the point. Patrick OS is not an opportunity engine")
+    print("yet and must not behave as though the stages it has are the business.")
+    print("See docs/ARCHITECTURE.md and decisions/0006.")
+    return 0
+
+
 def cmd_doctor(args):
     base = skills.root(args.root)
     print(f"root:          {base}")
@@ -374,6 +441,8 @@ def build_parser():
     p.add_argument("action", nargs="?", choices=["show"], default="show")
     p.add_argument("--scope")
     p.add_argument("--skill")
+    p.add_argument("--strategy", action="store_true",
+                   help="show strategy/ rules instead of voice/ rules")
     p.set_defaults(func=cmd_voice)
 
     p = sub.add_parser("route", help="explain a routing decision without calling anything")
@@ -386,8 +455,8 @@ def build_parser():
     p.set_defaults(func=cmd_route)
 
     p = sub.add_parser("feedback", help="record corrections and promote them into rules")
-    p.add_argument("action", choices=["add", "reject-output", "correct", "list",
-                                      "show", "promote", "reject"])
+    p.add_argument("action", choices=["add", "reject-output", "correct", "strategy",
+                                      "list", "show", "promote", "reject"])
     p.add_argument("id", nargs="?")
     p.add_argument("--original")
     p.add_argument("--edited")
@@ -401,6 +470,9 @@ def build_parser():
     p.add_argument("--text", help="override the proposed rule text when promoting")
     p.add_argument("--reason", help="why an output was rejected, or why a proposal was")
     p.add_argument("--output", help="the rejected output file, for reject-output")
+    p.add_argument("--evidence", help="the result that taught a strategy lesson")
+    p.add_argument("--mechanism", help="strategy scope: one mechanism")
+    p.add_argument("--segment", help="strategy scope: one buyer segment")
     p.set_defaults(func=cmd_feedback)
 
     p = sub.add_parser("judge", help="check an output against a skill's quality bar")
@@ -429,6 +501,11 @@ def build_parser():
     p.add_argument("--supersedes")
     p.set_defaults(func=cmd_decision)
 
+    p = sub.add_parser("pipeline", help="show stage and mechanism coverage")
+    p.add_argument("--verbose", "-v", action="store_true")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_pipeline)
+
     p = sub.add_parser("doctor", help="check the environment without calling a provider")
     p.set_defaults(func=cmd_doctor)
     return parser
@@ -446,6 +523,8 @@ def main(argv=None):
             parser.error("feedback reject-output requires --output and --reason")
         if args.action == "correct" and not args.text:
             parser.error("feedback correct requires --text")
+        if args.action == "strategy" and not (args.text and args.evidence):
+            parser.error("feedback strategy requires --text and --evidence")
         if args.action in {"show", "promote", "reject"} and not args.id:
             parser.error(f"feedback {args.action} requires an id")
     if args.command == "decision" and args.action == "add" and not args.title:
@@ -454,7 +533,7 @@ def main(argv=None):
         return args.func(args)
     except (skills.SkillError, voice.VoiceError, feedback.FeedbackError,
             decisions.DecisionError, route_table.RouteTableError, runner.RunError,
-            judging.JudgeError) as error:
+            judging.JudgeError, pipeline.PipelineError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
     except FileNotFoundError as error:

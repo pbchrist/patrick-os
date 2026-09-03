@@ -7,6 +7,10 @@ channel: null
 project: site-factory
 outputs: report
 dry_run_default: true
+stage: qualification
+mechanisms:
+  - website
+investment_tier: note
 sends: false
 inputs:
   - name: business_name
