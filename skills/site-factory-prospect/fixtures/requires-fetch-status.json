@@ -1,0 +1,9 @@
+{
+  "name": "requires-fetch-status",
+  "_note": "fetch_status is the whole SF-03 defence. Omitting it must fail binding, never default to ok.",
+  "inputs": {
+    "business_name": "Ironwood",
+    "claimed_url": "https://ironwood.example"
+  },
+  "expect": { "invalid_inputs": true }
+}

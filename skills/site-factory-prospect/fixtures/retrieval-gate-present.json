@@ -1,0 +1,22 @@
+{
+  "name": "retrieval-gate-present",
+  "inputs": {
+    "business_name": "Sunrise Dentistry",
+    "claimed_url": "https://sunrisedental.example",
+    "fetch_status": "cloudflare-challenge"
+  },
+  "expect": {
+    "must_contain": [
+      "retrieval_failed",
+      "identity_unverified",
+      "SF-03",
+      "SF-05",
+      "[P-002]",
+      "[P-005]",
+      "Project facts — site-factory",
+      "NO-GO"
+    ],
+    "route_route": "research",
+    "route_provider": "local-qwen"
+  }
+}

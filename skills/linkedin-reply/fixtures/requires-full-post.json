@@ -1,0 +1,6 @@
+{
+  "name": "requires-full-post",
+  "_note": "post_text is required; omitting it must fail binding rather than silently drafting against nothing.",
+  "inputs": { "post_author": "a recruiter I know" },
+  "expect": { "invalid_inputs": true }
+}

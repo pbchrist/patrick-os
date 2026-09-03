@@ -1,0 +1,26 @@
+{
+  "name": "no-send-path",
+  "inputs": {
+    "prospect_record": "Identity: medium\nFetch status: ok\nObservations\n- The review card reading \"Dana Reyes\" appears three times consecutively.",
+    "offer": "a Narrative Decision Audit, $500",
+    "recipient_role": "practice owner"
+  },
+  "expect": {
+    "must_contain": [
+      "NOT SENDABLE",
+      "Gate 2",
+      "NOT SATISFIED",
+      "No recipient address is accepted by this skill, ever",
+      "signature block appears exactly once",
+      "[C-004]",
+      "[C-005]",
+      "[P-004]",
+      "[G-002]",
+      "[G-007]"
+    ],
+    "must_not_contain": ["@example.com"],
+    "route_route": "draft",
+    "route_provider": "anthropic-opus",
+    "route_allows": ["hermes-codex"]
+  }
+}

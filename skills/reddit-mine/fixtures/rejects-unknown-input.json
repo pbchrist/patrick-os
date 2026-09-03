@@ -1,0 +1,9 @@
+{
+  "name": "rejects-unknown-input",
+  "inputs": {
+    "subreddit": "recruiting",
+    "pain_hypothesis": "x",
+    "sort_by": "hot"
+  },
+  "expect": { "invalid_inputs": true }
+}

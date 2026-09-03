@@ -1,0 +1,19 @@
+{
+  "name": "refusal-path-present",
+  "inputs": {
+    "role": "Staff Platform Engineer",
+    "candidate_evidence": "Conference talk: We deleted our service mesh (2026)."
+  },
+  "expect": {
+    "must_contain": [
+      "insufficient evidence to contact",
+      "[G-002]",
+      "[G-010]",
+      "[C-004]",
+      "evidence table",
+      "protected-class inference"
+    ],
+    "route_route": "draft",
+    "route_provider": "anthropic-opus"
+  }
+}

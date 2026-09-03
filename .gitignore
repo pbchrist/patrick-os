@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# Run artifacts are local working output, not repository content. The durable
+# things a run produces -- a promoted rule, a decision, a feedback entry -- are
+# committed; the raw work orders and drafts are not.
+runs/*
+!runs/.gitkeep
+
+# Never commit a credential. Patrick OS reads every secret from the environment;
+# config/routes.json holds only the NAME of the variable.
+.env
+.env.*
+!.env.example

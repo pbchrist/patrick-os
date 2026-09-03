@@ -1,0 +1,25 @@
+{
+  "name": "composes-evidence-rules",
+  "_note": "must_not_contain is asserted against the WORK ORDER, not the model's output. Do not list a banned phrase here if a voice rule names that phrase in order to ban it -- G-006 quotes 'unlock' and 'supercharge' verbatim, so those words are correctly present.",
+  "inputs": {
+    "subreddit": "recruiting",
+    "pain_hypothesis": "Recruiters can tell AI-written outreach and it lowers reply rates",
+    "window_days": 14,
+    "min_quotes": 5
+  },
+  "expect": {
+    "must_contain": [
+      "[G-002]",
+      "[G-010]",
+      "[C-003]",
+      "[C-004]",
+      "r/recruiting",
+      "last 14 days",
+      "insufficient evidence"
+    ],
+    "must_not_contain": ["ANTHROPIC_API_KEY", "sk-"],
+    "route_route": "research",
+    "route_provider": "local-qwen",
+    "route_denies": ["anthropic-opus", "openai-api"]
+  }
+}

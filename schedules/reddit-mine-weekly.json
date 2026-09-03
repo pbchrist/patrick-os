@@ -1,0 +1,20 @@
+{
+  "name": "reddit-mine-weekly",
+  "when": "cron:0 9 * * 1",
+  "timezone": "America/Los_Angeles",
+  "description": "Monday: re-test one standing hypothesis against the last week of r/recruiting.",
+  "steps": [
+    {
+      "skill": "reddit-mine",
+      "inputs": {
+        "subreddit": "recruiting",
+        "pain_hypothesis": "Recruiters can tell AI-written outreach and it lowers reply rates",
+        "window_days": 7
+      }
+    }
+  ],
+  "execute": false,
+  "output_to": "runs/",
+  "escalate_if": "Verdict flips between weeks, or Contradicts outweighs Supports.",
+  "_status": "declarative only — no runner is wired to this yet, by design"
+}

@@ -1,0 +1,20 @@
+{
+  "name": "brevity-and-optout",
+  "inputs": {
+    "post_text": "AI screening removes bias from hiring.",
+    "post_author": "a former colleague",
+    "max_sentences": 4
+  },
+  "expect": {
+    "must_contain": [
+      "[C-001]",
+      "[C-005]",
+      "[G-002]",
+      "no reply warranted",
+      "at most 4 sentences"
+    ],
+    "route_route": "draft.reply",
+    "route_provider": "hermes-codex",
+    "route_denies": ["local-qwen"]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "project-facts-compose",
+  "_note": "This skill declares project: narrative-sourcing, so the project truth record must reach the work order -- including the human-gate constraint that governs every message this skill drafts.",
+  "inputs": {
+    "role": "Senior Recruiter",
+    "candidate_evidence": "Public profile text pasted verbatim.",
+    "comp_range": "$120-140k"
+  },
+  "expect": {
+    "must_contain": [
+      "Project facts — narrative-sourcing",
+      "human-gated",
+      "$120-140k"
+    ]
+  }
+}

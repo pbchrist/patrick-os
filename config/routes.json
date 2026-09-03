@@ -1,0 +1,118 @@
+{
+  "_comment": [
+    "Declarative model routing for Patrick OS. Task classes name work, not vendors.",
+    "Credentials are never stored here -- only the NAME of the environment variable",
+    "that holds one. Editing this file is how you change which model does what;",
+    "no Python change should ever be required to add or retire a provider."
+  ],
+
+  "providers": {
+    "local-qwen": {
+      "adapter": "openai_http",
+      "model": "qwen",
+      "base_url_env": "PATRICK_LOCAL_BASE_URL",
+      "base_url": "http://127.0.0.1:8082/v1",
+      "api_key_env": "PATRICK_LOCAL_API_KEY",
+      "api_key": "local",
+      "local": true,
+      "capabilities": ["text", "json"],
+      "supports_tools": false,
+      "quality": 2,
+      "cost_per_1k": 0.0,
+      "latency_class": "medium",
+      "max_request_bytes": 24000,
+      "max_context_tokens": 32000,
+      "_note": "Same endpoint Site Factory writes against. The 24k request-body cap is the measured limit of the narrative-sourcing tunnel; it is a routing constraint, not an adapter detail."
+    },
+
+    "hermes-codex": {
+      "adapter": "hermes_cli",
+      "model": "gpt-5.6-sol",
+      "command": "hermes",
+      "hermes_provider": "openai-codex",
+      "isolate": true,
+      "max_turns": 1,
+      "extra_args": [],
+      "local": false,
+      "capabilities": ["text", "json", "judge"],
+      "supports_tools": true,
+      "quality": 4,
+      "cost_per_1k": 0.0,
+      "latency_class": "slow",
+      "_note": "Reuses Hermes' existing openai-codex OAuth login; no API key is copied into Patrick OS. isolate:true adds --ignore-rules --ignore-user-config so a Patrick OS work order does not inherit Hermes' own AGENTS.md, SOUL.md, memory, or preloaded skills. extra_args is the escape hatch for flags a future Hermes version adds back (--reasoning and --safe-mode are NOT accepted by the installed v0.13.0)."
+    },
+
+    "anthropic-opus": {
+      "adapter": "anthropic_api",
+      "model": "claude-opus-5",
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "local": false,
+      "capabilities": ["text", "json", "long-context", "judge"],
+      "supports_tools": true,
+      "quality": 5,
+      "cost_per_1k": 15.0,
+      "latency_class": "medium",
+      "max_context_tokens": 200000
+    },
+
+    "openai-api": {
+      "adapter": "openai_http",
+      "model": "gpt-5.6-sol",
+      "base_url_env": "PATRICK_OPENAI_BASE_URL",
+      "base_url": "https://api.openai.com/v1",
+      "api_key_env": "OPENAI_API_KEY_PATRICK_OS",
+      "local": false,
+      "capabilities": ["text", "json", "long-context"],
+      "supports_tools": true,
+      "quality": 4,
+      "cost_per_1k": 10.0,
+      "latency_class": "medium",
+      "_note": "api_key_env is deliberately NOT plain OPENAI_API_KEY: that variable is set to the literal 'local' for the Qwen server in Site Factory's .env, and reusing it would silently send a junk key to api.openai.com."
+    }
+  },
+
+  "routes": [
+    {
+      "task_class": "research",
+      "prefer": ["local-qwen", "hermes-codex", "anthropic-opus"],
+      "max_cost_per_1k": 1.0,
+      "_why": "Mining public forums is high-volume and low-stakes. Keep it free."
+    },
+    {
+      "task_class": "draft",
+      "prefer": ["anthropic-opus", "hermes-codex", "local-qwen"],
+      "min_quality": 3,
+      "_why": "Anything a human will put their name on gets the strongest writer."
+    },
+    {
+      "task_class": "draft.reply",
+      "prefer": ["hermes-codex", "anthropic-opus"],
+      "min_quality": 3,
+      "_why": "Short public replies: quality matters, volume is low, cost is not the constraint."
+    },
+    {
+      "task_class": "judge",
+      "prefer": ["hermes-codex", "anthropic-opus"],
+      "deny": ["local-qwen"],
+      "min_quality": 3,
+      "needs_capabilities": ["judge"],
+      "_why": "Site Factory's hardest-won lesson (SF-07): a judge that shares a model or an answer key with the writer measures nothing. The judge must be a different provider from the writer, by construction."
+    },
+    {
+      "task_class": "classify",
+      "prefer": ["local-qwen", "hermes-codex"],
+      "max_cost_per_1k": 1.0
+    },
+    {
+      "task_class": "private",
+      "prefer": ["local-qwen"],
+      "require_local": true,
+      "_why": "Client material and candidate PII never leave the machine."
+    }
+  ],
+
+  "default": {
+    "prefer": ["hermes-codex", "local-qwen", "anthropic-opus"],
+    "min_quality": 2
+  }
+}

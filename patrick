@@ -1,0 +1,6 @@
+#!/bin/sh
+# Patrick OS task runner. Stdlib-only Python: no venv, no install, no deps.
+root="$(cd "$(dirname "$0")" && pwd)"
+PATRICK_OS_ROOT="${PATRICK_OS_ROOT:-$root}" \
+PYTHONPATH="$root${PYTHONPATH:+:$PYTHONPATH}" \
+exec python3 -m patrick_os.cli "$@"

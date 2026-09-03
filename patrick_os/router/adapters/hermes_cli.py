@@ -1,0 +1,84 @@
+"""Hermes as a provider, via its CLI.
+
+Patrick OS shells out to the `hermes` CLI and writes nothing into ~/.hermes.
+Hermes' existing OAuth logins are reused rather than duplicated as API keys here,
+and Hermes' own behavior is untouched.
+
+A note on the argv, because it is easy to get wrong twice:
+
+Site Factory's `llm_client.py::_hermes_json` (pbchrist/hermes-projects, branch
+audit/site-factory-20260901) invokes
+
+    hermes chat -Q --provider P -m M --reasoning low --safe-mode
+                --source tool --max-turns 1 --query-file -
+
+`hermes chat` at the installed v0.13.0 accepts none of `--reasoning`,
+`--safe-mode`, or `--query-file`; it exits 2 with "unrecognized arguments". So
+Patrick OS builds the invocation this CLI actually documents, and treats the
+extra flags as per-provider `extra_args` in `config/routes.json` -- data, not
+code -- so a Hermes upgrade that restores them is a config edit.
+
+`--ignore-rules` and `--ignore-user-config` are included by default because
+Hermes' own help describes them as the isolation flags for "third-party
+integrations": without them a Patrick OS work order would silently inherit
+Hermes' AGENTS.md, SOUL.md, memory, and preloaded skills, and the output would be
+shaped by a voice layer that is not this one.
+"""
+
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+
+
+class TransportError(RuntimeError):
+    pass
+
+
+# The prompt travels as an argv element. macOS ARG_MAX is ~1 MB, but a work order
+# anywhere near this size is a design problem, not a transport problem.
+MAX_PROMPT_BYTES = 200_000
+
+
+def resolve_command(provider):
+    command = provider.config.get("command") or os.getenv("PATRICK_HERMES_COMMAND") or "hermes"
+    found = shutil.which(command)
+    if not found:
+        raise TransportError(f"{provider.key}: hermes CLI not found on PATH as {command!r}")
+    return found
+
+
+def build_argv(provider, prompt):
+    argv = [resolve_command(provider), "chat", "-Q"]
+    if provider.config.get("hermes_provider"):
+        argv += ["--provider", provider.config["hermes_provider"]]
+    if provider.model:
+        argv += ["-m", provider.model]
+    argv += ["--source", "tool", "--max-turns", str(provider.config.get("max_turns", 1))]
+    if provider.config.get("isolate", True):
+        argv += ["--ignore-rules", "--ignore-user-config"]
+    argv += list(provider.config.get("extra_args", []))
+    argv += ["-q", prompt]
+    return argv
+
+
+def complete(provider, prompt, *, timeout=120):
+    size = len(prompt.encode("utf-8"))
+    if size > MAX_PROMPT_BYTES:
+        raise TransportError(
+            f"{provider.key}: prompt is {size} bytes, above the {MAX_PROMPT_BYTES}-byte "
+            "argv limit for this adapter"
+        )
+    completed = subprocess.run(
+        build_argv(provider, prompt),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=timeout,
+        check=False,
+    )
+    if completed.returncode:
+        detail = (completed.stderr or completed.stdout).strip()[-500:]
+        raise TransportError(f"{provider.key}: hermes exited {completed.returncode}: {detail}")
+    return completed.stdout

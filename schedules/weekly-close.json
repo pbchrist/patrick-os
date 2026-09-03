@@ -1,0 +1,23 @@
+{
+  "name": "weekly-close",
+  "when": "cron:0 17 * * 5",
+  "timezone": "America/Los_Angeles",
+  "description": "Friday afternoon: what moved, what is now inactive, what is still unvalidated.",
+  "steps": [
+    {
+      "skill": null,
+      "action": "review",
+      "reads": ["projects/*.md", "feedback/inbox/*.json", "decisions/*.md"],
+      "produces": "A per-project line: stage, next irreversible action, and whether it moved this week.",
+      "rules": [
+        "A project with no next action is reported inactive, not ongoing.",
+        "A project with no demand evidence is reported unvalidated, not bad.",
+        "Feedback entries still classified local are listed but not promoted."
+      ]
+    }
+  ],
+  "execute": false,
+  "output_to": "runs/weekly-close/",
+  "escalate_if": "A project has been EXECUTE with no next action for three consecutive weeks.",
+  "_status": "declarative only — no runner is wired to this yet, by design"
+}

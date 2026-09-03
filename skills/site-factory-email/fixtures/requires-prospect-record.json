@@ -1,0 +1,6 @@
+{
+  "name": "requires-prospect-record",
+  "_note": "The prospect record carries the identity and fetch gates. Drafting without it would reintroduce SF-03 and SF-05 at the email layer.",
+  "inputs": { "offer": "a Narrative Decision Audit, $500" },
+  "expect": { "invalid_inputs": true }
+}

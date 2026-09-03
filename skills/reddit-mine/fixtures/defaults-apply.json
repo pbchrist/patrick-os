@@ -1,0 +1,12 @@
+{
+  "name": "defaults-apply",
+  "_note": "window_days and min_quotes are omitted; the declared defaults must reach both the input block and the interpolated procedure text.",
+  "inputs": {
+    "subreddit": "ExperiencedDevs",
+    "pain_hypothesis": "Senior engineers ignore recruiter outreach that omits compensation"
+  },
+  "expect": {
+    "must_contain": ["last 14 days", "min_quotes: 5", "5 distinct authors"],
+    "route_provider": "local-qwen"
+  }
+}
