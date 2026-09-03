@@ -25,6 +25,16 @@ inputs:
     type: integer
     required: false
     default: 4
+output_checks:
+  - check: max_sentences
+    section: Draft
+    limit: 4
+  - check: forbid_openers
+    section: Draft
+  - check: forbid_emoji
+    section: Draft
+  - check: forbid_hype
+  - check: forbid_perception_language
 ---
 
 # linkedin-reply

@@ -1,0 +1,7 @@
+{
+  "name": "fluent-agreement",
+  "provenance": "The default LinkedIn failure named in the skill's own failure modes: passes every stylistic instinct, adds nothing, opens with agreement, and runs long.",
+  "expect_verdict": "repair",
+  "expect_defects": ["max_sentences", "forbid_openers"],
+  "output": "Angle: agreement\n\nDraft:\nGreat post, and so true. AI screening really is changing how we all think about bias in hiring. I've seen this play out at a few companies now and the pattern holds every time. The teams that adopt it early are the ones that pull ahead. Thoughts?\n"
+}

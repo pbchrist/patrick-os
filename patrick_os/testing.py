@@ -89,6 +89,29 @@ def check_fixture(skill, fixture, table, base=None):
     return failures
 
 
+def check_behavioral(skill, fixture):
+    """Run a skill's declared output checks against a real produced output."""
+    from . import checks
+
+    findings = checks.run(fixture["output"], skill.output_checks)
+    verdict = checks.verdict(findings)
+    failures = []
+    if verdict != fixture["expect_verdict"]:
+        failures.append(
+            f"verdict {verdict!r}, fixture expects {fixture['expect_verdict']!r}"
+            + (f" (found: {[f.check for f in findings]})" if findings else " (no findings)")
+        )
+    fired = {f.check for f in findings}
+    for expected in fixture.get("expect_defects", []):
+        if expected not in fired:
+            failures.append(f"expected check {expected!r} to fire, it did not")
+    for unexpected in sorted(fired - set(fixture.get("expect_defects", []))):
+        if fixture.get("allow_extra_defects"):
+            continue
+        failures.append(f"check {unexpected!r} fired but the fixture does not expect it")
+    return failures
+
+
 def run_suite(base=None, only=None, include_unit=True):
     """Run structural checks, fixtures, and (optionally) the unit tests."""
     report = {"skills": [], "unit": None, "ok": True, "counts": {"pass": 0, "fail": 0}}
@@ -111,6 +134,17 @@ def run_suite(base=None, only=None, include_unit=True):
         for fixture in skill.fixtures():
             failures = check_fixture(skill, fixture, table, base)
             entry["fixtures"].append(
+                {"name": fixture.get("name"), "failures": failures, "ok": not failures}
+            )
+            if failures:
+                report["ok"] = False
+                report["counts"]["fail"] += 1
+            else:
+                report["counts"]["pass"] += 1
+        entry["behavioral"] = []
+        for fixture in skill.behavioral_fixtures():
+            failures = check_behavioral(skill, fixture)
+            entry["behavioral"].append(
                 {"name": fixture.get("name"), "failures": failures, "ok": not failures}
             )
             if failures:
@@ -162,6 +196,14 @@ def format_report(report):
                 lines.append(f"ok    {entry['skill']} :: {fixture['name']}")
             else:
                 lines.append(f"FAIL  {entry['skill']} :: {fixture['name']}")
+                for problem in fixture["failures"]:
+                    lines.append(f"        - {problem}")
+        for fixture in entry.get("behavioral", []):
+            label = f"{entry['skill']} :: [behavioral] {fixture['name']}"
+            if fixture["ok"]:
+                lines.append(f"ok    {label}")
+            else:
+                lines.append(f"FAIL  {label}")
                 for problem in fixture["failures"]:
                     lines.append(f"        - {problem}")
     unit = report.get("unit")

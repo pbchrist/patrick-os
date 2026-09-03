@@ -1,0 +1,7 @@
+{
+  "name": "inferred-motivation",
+  "provenance": "The failure the skill names first: tenure read as intent, plus flattery, plus a claim with no evidence row. Candidates recognise all three.",
+  "expect_verdict": "blocked",
+  "expect_defects": ["forbid_perception_language", "forbid_flattery"],
+  "output": "Hook: four years at the same company\n\nEvidence table\n| Claim | Source line |\n| --- | --- |\n| four years at current employer | line 1 |\n\nDraft message\nYour background is genuinely impressive. I saw you've been at the same company for four years, so you're probably ready for a change. This role would be a great next step for someone with your passion for infrastructure.\n"
+}

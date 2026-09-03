@@ -22,9 +22,11 @@ derived from two documents; a real voice model needs a corpus of Patrick's actua
 outputs, edits, and rejections. Every rule carries provenance so it can be traced
 back, revised, or retired when that corpus arrives.
 
-**The regression suite is structural, not behavioral.** It proves a work order
-carries the right rules and routes to the right provider. It does not yet prove
-the output is any good. Behavioral fixtures are the next layer.
+**The regression suite has two layers.** Structural fixtures prove a work order
+carries the right rules and routes to the right provider. Behavioral fixtures
+prove a specific *produced output* is caught or passed — and the canonical
+negative fixture is the email Site Factory actually shipped at PASS / 90.0 /
+evidence_fidelity 5/5. Behavioral fixtures run offline, with no model.
 
 ## Quick start
 
@@ -36,7 +38,8 @@ No install. No virtualenv. No dependencies. Python 3.9 or newer.
 ./patrick skills show reddit-mine --body
 ./patrick route judge.copy    # explain a routing decision, calling nothing
 ./patrick run reddit-mine --input subreddit=recruiting --input pain_hypothesis='...'
-./patrick test                # 116 checks
+./patrick judge site-factory-email --output draft.md   # deterministic checks
+./patrick test                # 152 checks
 ```
 
 `patrick run` is a dry run: it composes the work order and resolves the route,
@@ -85,9 +88,9 @@ classes name work, not vendors.
 
 | Route      | Prefers                                | Why |
 |------------|----------------------------------------|-----|
-| `research` | local-qwen → hermes-codex              | high volume, low stakes, keep it free |
-| `draft`    | anthropic-opus → hermes-codex          | anything a human signs gets the strongest writer |
-| `judge`    | hermes-codex, **denies** local-qwen    | a judge sharing a model with the writer measures nothing |
+| `research` | local-qwen → hermes-copilot              | high volume, low stakes, keep it free |
+| `draft`    | anthropic-opus → hermes-copilot          | anything a human signs gets the strongest writer |
+| `judge`    | hermes-copilot, **denies** local-qwen    | a judge sharing a model with the writer measures nothing |
 | `private`  | local-qwen, `require_local`            | client material and candidate PII stay on the machine |
 
 `patrick route <task-class>` explains any decision, including every rejection and
@@ -114,3 +117,29 @@ repository existed. See decision 0005.
 
 `patrick test` fails a skill missing any required section, missing fixtures, or
 declaring `sends: true`.
+
+## Judging an output
+
+`patrick judge <skill> --output <file>` runs the skill's declared `output_checks`
+— pure functions over text, offline. Two severities, and the distinction comes
+straight from Site Factory finding SF-08:
+
+- **blocking** — fact integrity. An unmeasured claim, a manufactured-evidence
+  offer, a leaked address, a missing citation. These kill an output.
+- **advisory** — style. Hype register, an opener, length. These annotate for
+  repair and never eliminate. SF-08 verified that a style-eliminating lint
+  deleted the two evidence-richest candidates over the word "metadata".
+
+`--execute` adds an independent model judge. Two properties are enforced in code,
+not remembered:
+
+1. The judge provider must differ from the writer provider, or Patrick OS refuses
+   to judge at all.
+2. The judge prompt is built from the skill's own criteria and contains **no
+   exemplar output**. SF-07 measured what happens otherwise: the one passing
+   output scored 0.590 trigram similarity to the calibration example against
+   0.015–0.081 for the four failures, and the judge cited "the rhetorical
+   structure of the positive calibration" as its standard.
+
+Verdicts: `pass`, `repair`, `reject`, `escalate` — the last is separate on
+purpose, because "a human must decide" is not the same as "this is bad".

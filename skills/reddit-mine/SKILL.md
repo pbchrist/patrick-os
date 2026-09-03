@@ -26,6 +26,16 @@ inputs:
     required: false
     default: 5
     description: Below this, the run reports insufficient evidence rather than padding.
+output_checks:
+  - check: require_sections
+    sections: Hypothesis|Supports|Contradicts|Adjacent|Verdict
+  - check: verdict_in_vocabulary
+    label: Verdict
+    allowed: supported|contradicted|mixed|insufficient evidence
+  - check: quotes_are_sourced
+  - check: counts_are_numeric
+  - check: forbid_perception_language
+  - check: forbid_hype
 ---
 
 # reddit-mine

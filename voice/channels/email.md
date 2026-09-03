@@ -12,3 +12,4 @@ version: 1
 - [C-003] The ask is a reply or a call, never a purchase.
 - [C-004] Sign once. Check the rendered draft for a duplicated signature block before it is shown to a human — that bug shipped in Site Factory's Cool Blew output at 100/100.
 - [C-005] No commercial email is generated with a live recipient address in v1. Drafts route to a file; a human moves them.
+- [C-006] Make the ask concrete: name specific days or a specific length, never an open-ended 'let me know'.  (source: feedback F-20260903-002)

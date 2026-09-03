@@ -1,0 +1,7 @@
+{
+  "name": "unsourced-quotes",
+  "provenance": "The most common mining failure: fluent, plausible, and unauditable. Quotes with no permalink and a vague count instead of a distinct-author number.",
+  "expect_verdict": "blocked",
+  "expect_defects": ["quotes_are_sourced", "counts_are_numeric"],
+  "output": "Hypothesis: Recruiters can tell AI-written outreach and it lowers reply rates.\n\nSupports\n- \"I can spot the ChatGPT cadence in two seconds and I archive it\"\n- \"every one of them opens the same way now\"\nSeveral recruiters described the same pattern.\n\nContradicts\nnone found in window\n\nAdjacent\n- General frustration about req load.\n\nVerdict: supported\n"
+}

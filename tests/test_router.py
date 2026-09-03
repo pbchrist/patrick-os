@@ -176,7 +176,7 @@ class AdapterImportTest(unittest.TestCase):
         actually accepts, so a drift fails here rather than at runtime."""
         from patrick_os.router.adapters import hermes_cli
         from patrick_os.router.spec import Provider
-        provider = Provider("hermes-codex", {
+        provider = Provider("hermes-copilot", {
             "adapter": "hermes_cli", "model": "gpt-5.6-sol", "command": "/bin/echo",
             "hermes_provider": "openai-codex",
         })

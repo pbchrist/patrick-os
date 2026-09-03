@@ -1,0 +1,47 @@
+{
+  "channel": "email",
+  "created": "2026-09-03T20:56:12+00:00",
+  "edits": [
+    {
+      "added": [
+        "Worth twenty minutes on Thursday or Friday?"
+      ],
+      "added_words": [
+        "friday",
+        "thursday"
+      ],
+      "kind": "rewrite",
+      "occurrences": 2,
+      "rationale": "seen 2 times across 2 skills, all on channel 'email'",
+      "removed": [
+        "Worth twenty minutes to walk through it?"
+      ],
+      "removed_words": [
+        "through",
+        "walk"
+      ],
+      "scope": "channel:email",
+      "signature": "rewrite:-through|walk:+friday|thursday"
+    }
+  ],
+  "id": "F-20260903-002",
+  "note": null,
+  "project": null,
+  "proposals": [
+    {
+      "occurrences": 2,
+      "promoted_at": "2026-09-03T20:56:27+00:00",
+      "promoted_scope": "channel:email",
+      "promoted_text": "Make the ask concrete: name specific days or a specific length, never an open-ended 'let me know'.",
+      "rationale": "seen 2 times across 2 skills, all on channel 'email'",
+      "rule": "Prefer thursday, friday over walk, through.",
+      "rule_id": "C-006",
+      "scope": "channel:email",
+      "signature": "rewrite:-through|walk:+friday|thursday",
+      "status": "promoted"
+    }
+  ],
+  "run_id": null,
+  "skill": "site-factory-email",
+  "status": "promoted"
+}

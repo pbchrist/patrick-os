@@ -1,0 +1,7 @@
+{
+  "name": "adds-a-mechanism",
+  "provenance": "The version worth posting: names a constraint the original ignored, cites its example inline, three sentences, no opener.",
+  "expect_verdict": "clean",
+  "expect_defects": [],
+  "output": "Angle: named constraint the post ignored\nWhy worth posting: the post treats the training data as neutral; that is the whole question, and it is checkable.\n\nDraft:\nA screen trained on past hires reproduces whoever got hired before. The 2018 Amazon resume tool is the cited example -- it downgraded resumes containing \"women's\" because that is what the history contained. Bias moves from the interviewer to the training set; it does not leave the system.\n"
+}

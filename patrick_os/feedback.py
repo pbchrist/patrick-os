@@ -159,8 +159,23 @@ def _words_of(edit, field):
     return set(_content_words(edit.get(source, []))) - set(_content_words(edit.get(other, [])))
 
 
+def _overlaps(a, b):
+    if not a or not b:
+        return False
+    shared = a & b
+    if len(shared) < min(MIN_SHARED_WORDS, len(a), len(b)):
+        return False
+    return len(shared) / len(a | b) >= SIMILARITY_THRESHOLD
+
+
 def similar(left, right):
     """Do two edits represent the same correction?
+
+    Matched in BOTH directions, because a correction can be defined by what it
+    removes *or* by what it adds. Replacing "worth twenty minutes?" with "worth
+    twenty minutes on Thursday or Friday?" strips different words each time it is
+    made, but always adds the same thing -- a concrete day. Keying only on removed
+    words missed that class of correction entirely, so it never escalated.
 
     Surface edits never match anything, including each other -- that is what
     makes them permanently un-generalizable rather than merely slow to escalate.
@@ -169,14 +184,10 @@ def similar(left, right):
         return False
     if left.get("kind") != right.get("kind"):
         return False
-    a = _words_of(left, "removed_words")
-    b = _words_of(right, "removed_words")
-    if not a or not b:
-        return False
-    shared = a & b
-    if len(shared) < min(MIN_SHARED_WORDS, len(a), len(b)):
-        return False
-    return len(shared) / len(a | b) >= SIMILARITY_THRESHOLD
+    return (
+        _overlaps(_words_of(left, "removed_words"), _words_of(right, "removed_words"))
+        or _overlaps(_words_of(left, "added_words"), _words_of(right, "added_words"))
+    )
 
 
 # --- storage --------------------------------------------------------------

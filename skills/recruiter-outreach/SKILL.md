@@ -26,6 +26,15 @@ inputs:
     type: string
     required: false
     description: The specific reason this person. If blank, the skill derives one and shows its evidence, or refuses.
+output_checks:
+  - check: require_sections
+    sections: Hook|Evidence table|Draft message
+  - check: claims_have_sources
+    section: Evidence table
+  - check: forbid_perception_language
+  - check: forbid_flattery
+  - check: forbid_hype
+  - check: forbid_email_address
 ---
 
 # recruiter-outreach

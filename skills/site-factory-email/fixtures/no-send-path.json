@@ -21,6 +21,6 @@
     "must_not_contain": ["@example.com"],
     "route_route": "draft",
     "route_provider": "anthropic-opus",
-    "route_allows": ["hermes-codex"]
+    "route_allows": ["hermes-copilot"]
   }
 }

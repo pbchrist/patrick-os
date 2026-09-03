@@ -22,6 +22,23 @@ inputs:
     type: string
     required: false
     description: The role of the intended reader, e.g. "practice owner". Never an email address.
+output_checks:
+  - check: require_sections
+    sections: Identity|Fetch status|Subject|Body|Claim table
+  - check: require_phrases
+    phrases: NOT SATISFIED|NOT SENDABLE
+  - check: claims_have_sources
+    section: Claim table
+  - check: forbid_perception_language
+  - check: forbid_manufactured_evidence
+  - check: forbid_email_address
+  - check: signature_once
+    name: Patrick
+    limit: 1
+  - check: max_sentences
+    section: Body
+    limit: 4
+  - check: forbid_hype
 ---
 
 # site-factory-email

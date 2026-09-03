@@ -128,7 +128,36 @@ class Skill:
     def section(self, title):
         return self.sections().get(title, "")
 
+    @property
+    def output_checks(self):
+        return self.meta.get("output_checks") or []
+
     # -- fixtures ---------------------------------------------------------
+    def behavioral_fixtures(self):
+        """Fixtures that assert on a real produced OUTPUT, not on the work order.
+
+        Structural fixtures prove the right rules reached the worker. These prove
+        a specific bad output is caught -- and the canonical ones are outputs that
+        actually shipped.
+        """
+        directory = self.path / "fixtures" / "behavioral"
+        if not directory.is_dir():
+            return []
+        loaded = []
+        for file in sorted(directory.glob("*.json")):
+            with open(file, encoding="utf-8") as handle:
+                try:
+                    data = json.load(handle)
+                except json.JSONDecodeError as error:
+                    raise SkillError(f"{file}: invalid JSON fixture: {error}") from error
+            data.setdefault("name", file.stem)
+            data["_path"] = str(file)
+            for field in ("output", "expect_verdict"):
+                if field not in data:
+                    raise SkillError(f"{file}: behavioral fixture needs a {field!r} field")
+            loaded.append(data)
+        return loaded
+
     def fixtures(self):
         directory = self.path / "fixtures"
         if not directory.is_dir():
@@ -197,6 +226,18 @@ class Skill:
             problems.append("dry_run_default must be true; dry run is the default everywhere")
         if not self.fixtures():
             problems.append("no regression fixtures under fixtures/")
+        if self.output_checks:
+            from . import checks as checks_module
+
+            for entry in self.output_checks:
+                name = entry.get("check") if isinstance(entry, dict) else entry
+                if name not in checks_module.REGISTRY:
+                    problems.append(f"declares unknown output check: {name}")
+            if not self.behavioral_fixtures():
+                problems.append(
+                    "declares output_checks but has no behavioral fixtures under "
+                    "fixtures/behavioral/ -- a check nothing exercises is decoration"
+                )
         return problems
 
 

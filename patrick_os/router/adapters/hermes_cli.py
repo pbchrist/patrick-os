@@ -28,6 +28,7 @@ shaped by a voice layer that is not this one.
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 
@@ -81,4 +82,13 @@ def complete(provider, prompt, *, timeout=120):
     if completed.returncode:
         detail = (completed.stderr or completed.stdout).strip()[-500:]
         raise TransportError(f"{provider.key}: hermes exited {completed.returncode}: {detail}")
-    return completed.stdout
+    return strip_session_noise(completed.stdout)
+
+
+SESSION_LINE = re.compile(r"^\s*session_id:\s*\S+\s*$", re.MULTILINE)
+
+
+def strip_session_noise(text):
+    """`hermes chat -Q` still emits a trailing `session_id:` line. It is transport
+    metadata, not model output, and it corrupts JSON parsing downstream."""
+    return SESSION_LINE.sub("", text).strip() + "\n"

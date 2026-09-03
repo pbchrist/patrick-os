@@ -1,0 +1,7 @@
+{
+  "name": "wrong-verdict-vocabulary",
+  "provenance": "A verdict outside the declared vocabulary is how a report smuggles in confidence the evidence did not earn. 'Strongly supported' is not one of the four allowed values.",
+  "expect_verdict": "blocked",
+  "expect_defects": ["verdict_in_vocabulary"],
+  "output": "Hypothesis: x\n\nSupports\n- \"quote one\" -- u/a, 2026-08-24, https://reddit.com/r/recruiting/comments/aaa\n\nContradicts\nnone found in window\n\nAdjacent\n- none\n\nAuthor count: 6 distinct authors.\n\nVerdict: strongly supported, act on it\n"
+}

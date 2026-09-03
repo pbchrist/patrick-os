@@ -19,7 +19,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import decisions, feedback, runner, skills, testing, voice
+from . import decisions, feedback, judging, runner, skills, testing, voice
 from .router import TaskSpec, resolve
 from .router import table as route_table
 
@@ -178,7 +178,10 @@ def cmd_feedback(args):
             print("\nproposals (nothing applied yet):")
             for index, proposal in enumerate(entry["proposals"]):
                 print(f"  [{index}] {proposal['scope']}: {proposal['rule']}")
-            print(f"\napply with: patrick feedback promote {entry['id']}")
+            print("\nThe scope above is derived from where the correction repeated and is")
+            print("usually right. The wording is phrased mechanically from the diff and")
+            print("usually is not -- rewrite it when you promote:")
+            print(f"  patrick feedback promote {entry['id']} --text \"...\"")
         else:
             print("\nNo rule proposed. A correction stays local until it repeats "
                   "in another context.")
@@ -213,6 +216,22 @@ def cmd_feedback(args):
         print(f"rejected proposal {args.index} of {args.id}")
         return 0
     return 1
+
+
+def cmd_judge(args):
+    skill = skills.load_skill(args.slug, args.root)
+    output = _read(args.output)
+    try:
+        result = judging.judge(skill, output, writer_provider=args.writer,
+                               base=args.root, execute=args.execute)
+    except judging.IndependenceError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(result, indent=2, default=str))
+    else:
+        print(judging.format_result(result))
+    return 0 if result["deterministic"]["verdict"] != "blocked" else 1
 
 
 def cmd_test(args):
@@ -277,7 +296,15 @@ def cmd_doctor(args):
                 import shutil
 
                 command = provider.config.get("command", "hermes")
-                state = "ready" if shutil.which(command) else f"MISSING ({command} not on PATH)"
+                # Hermes holds its own credentials in its own pool. Whether THIS
+                # provider is authenticated cannot be known without making a call,
+                # so say that rather than implying readiness we did not verify.
+                state = (
+                    f"cli present; {provider.config.get('hermes_provider', '?')} auth "
+                    "not verified from here"
+                    if shutil.which(command)
+                    else f"MISSING ({command} not on PATH)"
+                )
             else:
                 env_name = provider.config.get("api_key_env")
                 has_env = bool(env_name and os.getenv(env_name))
@@ -339,6 +366,15 @@ def build_parser():
     p.add_argument("--reason")
     p.set_defaults(func=cmd_feedback)
 
+    p = sub.add_parser("judge", help="check an output against a skill's quality bar")
+    p.add_argument("slug")
+    p.add_argument("--output", required=True, help="file containing the produced output")
+    p.add_argument("--writer", help="provider that wrote it; the judge must differ")
+    p.add_argument("--execute", action="store_true",
+                   help="also call an independent judge provider")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_judge)
+
     p = sub.add_parser("test", help="run the regression suite")
     p.add_argument("slug", nargs="?")
     p.add_argument("--no-unit", action="store_true")
@@ -376,12 +412,21 @@ def main(argv=None):
     try:
         return args.func(args)
     except (skills.SkillError, voice.VoiceError, feedback.FeedbackError,
-            decisions.DecisionError, route_table.RouteTableError, runner.RunError) as error:
+            decisions.DecisionError, route_table.RouteTableError, runner.RunError,
+            judging.JudgeError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
     except FileNotFoundError as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
+    except runner.TRANSPORT_FAILURES as error:
+        # A provider being unreachable or unauthenticated is an environment
+        # condition, not a crash. Say what happened and what to do about it.
+        print(f"error: provider call failed: {type(error).__name__}: {error}",
+              file=sys.stderr)
+        print("hint: run `patrick doctor` to see which providers are configured.",
+              file=sys.stderr)
+        return 3
 
 
 if __name__ == "__main__":

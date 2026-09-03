@@ -1,0 +1,7 @@
+{
+  "name": "evidence-grounded",
+  "provenance": "Passes the paste-test: every claim traces to a line of the candidate's own public material, compensation is addressed, no motivation is inferred.",
+  "expect_verdict": "clean",
+  "expect_defects": [],
+  "output": "Hook: the talk \"We deleted our service mesh\" -- the role's on-call model is the same argument, made structurally.\n\nEvidence table\n| Claim | Source line |\n| --- | --- |\n| talk on removing a service mesh, SREcon 2026 | line 3 |\n| removed Istio from a 40-service cluster | line 2 |\n\nDraft message\nYour SREcon talk argued that the team paging at 3am should own the abstraction. This role is that structurally: on-call sits with the team that writes the service, and the platform group has no separate pager. The posted range is $210-240k base. Worth twenty minutes to see whether the org chart matches the claim?\n"
+}

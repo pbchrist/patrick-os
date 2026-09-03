@@ -1,0 +1,38 @@
+{
+  "channel": "email",
+  "created": "2026-09-03T20:56:12+00:00",
+  "edits": [
+    {
+      "added": [
+        "Worth twenty minutes on Thursday or Friday?"
+      ],
+      "added_words": [
+        "friday",
+        "thursday"
+      ],
+      "kind": "rewrite",
+      "occurrences": 1,
+      "rationale": "seen 1 time; a correction is local until it repeats (2 needed)",
+      "removed": [
+        "Worth twenty minutes to see whether the org chart matches the claim?"
+      ],
+      "removed_words": [
+        "chart",
+        "claim",
+        "matches",
+        "org",
+        "see",
+        "whether"
+      ],
+      "scope": "local",
+      "signature": "rewrite:-chart|claim|matches|org|see|whether:+friday|thursday"
+    }
+  ],
+  "id": "F-20260903-001",
+  "note": "Patrick always names days",
+  "project": null,
+  "proposals": [],
+  "run_id": null,
+  "skill": "recruiter-outreach",
+  "status": "recorded-local"
+}

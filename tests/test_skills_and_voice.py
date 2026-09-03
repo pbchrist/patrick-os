@@ -188,8 +188,8 @@ class FailoverTest(TempRootTest):
 
         record = runner.run(skill, {"topic": "x"}, execute=True, base=self.root,
                             transport=transport)
-        self.assertEqual(tried, ["anthropic-opus", "hermes-codex"])
-        self.assertEqual(record["provider"], "hermes-codex")
+        self.assertEqual(tried, ["anthropic-opus", "hermes-copilot"])
+        self.assertEqual(record["provider"], "hermes-copilot")
         self.assertFalse(record["attempts"][0]["ok"])
         self.assertIn("Connection refused", record["attempts"][0]["error"])
 
@@ -204,7 +204,7 @@ class FailoverTest(TempRootTest):
             runner.run(skill, {"topic": "x"}, execute=True, base=self.root,
                        transport=transport)
         self.assertIn("anthropic-opus", str(caught.exception))
-        self.assertIn("hermes-codex", str(caught.exception))
+        self.assertIn("hermes-copilot", str(caught.exception))
 
 
 class ShippedSkillsTest(unittest.TestCase):

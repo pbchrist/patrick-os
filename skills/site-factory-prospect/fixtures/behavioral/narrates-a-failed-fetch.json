@@ -1,0 +1,7 @@
+{
+  "name": "narrates-a-failed-fetch",
+  "provenance": "SF-03, verified by execution in the teardown: a Cloudflare challenge became a sellable website-rebuild opportunity and the generated copy asserted the site was down. The highest-reputational-risk path in the original codebase.",
+  "expect_verdict": "blocked",
+  "expect_defects": ["forbid_perception_language", "forbid_manufactured_evidence"],
+  "output": "Identity: high\nFetch status: cloudflare-challenge\n\nObservations\n- The site is not loading right now.\n\nSeverity\n- Site down -- critical.\n\nRecommendation: pursue. To a visitor the site appears broken, which will cost them bookings. We can rebuild it and generate fresh reviews to launch with.\n"
+}

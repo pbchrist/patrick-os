@@ -1,0 +1,7 @@
+{
+  "name": "refuses-on-failed-fetch",
+  "provenance": "The correct handling of the same input: our crawler failing is a fact about our crawler.",
+  "expect_verdict": "clean",
+  "expect_defects": [],
+  "output": "retrieval_failed: cloudflare-challenge\n\nOur fetcher did not retrieve this page. No finding, no severity, and no opportunity is produced. Nothing is known about this website from this run.\n"
+}

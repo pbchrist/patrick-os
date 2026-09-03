@@ -25,11 +25,11 @@
       "_note": "Same endpoint Site Factory writes against. The 24k request-body cap is the measured limit of the narrative-sourcing tunnel; it is a routing constraint, not an adapter detail."
     },
 
-    "hermes-codex": {
+    "hermes-copilot": {
       "adapter": "hermes_cli",
-      "model": "gpt-5.6-sol",
+      "model": "gpt-4.1",
       "command": "hermes",
-      "hermes_provider": "openai-codex",
+      "hermes_provider": "copilot",
       "isolate": true,
       "max_turns": 1,
       "extra_args": [],
@@ -39,7 +39,23 @@
       "quality": 4,
       "cost_per_1k": 0.0,
       "latency_class": "slow",
-      "_note": "Reuses Hermes' existing openai-codex OAuth login; no API key is copied into Patrick OS. isolate:true adds --ignore-rules --ignore-user-config so a Patrick OS work order does not inherit Hermes' own AGENTS.md, SOUL.md, memory, or preloaded skills. extra_args is the escape hatch for flags a future Hermes version adds back (--reasoning and --safe-mode are NOT accepted by the installed v0.13.0)."
+      "_note": "Reuses Hermes' existing credential pool; no API key is copied into Patrick OS. Verified working on this machine 2026-09-03 with gpt-4.1 and gpt-4o. Site Factory's .env points at SITE_FACTORY_JUDGE_PROVIDER=openai-codex, for which `hermes auth` shows NO stored credential here, so that judge path is currently dead. isolate:true adds --ignore-rules --ignore-user-config so a work order does not inherit Hermes' own AGENTS.md, SOUL.md, memory, or preloaded skills."
+    },
+
+    "hermes-nous": {
+      "adapter": "hermes_cli",
+      "model": "Hermes-4-405B",
+      "command": "hermes",
+      "hermes_provider": "nous",
+      "isolate": true,
+      "max_turns": 1,
+      "local": false,
+      "capabilities": ["text", "json", "judge"],
+      "supports_tools": true,
+      "quality": 4,
+      "cost_per_1k": 0.0,
+      "latency_class": "slow",
+      "_note": "Present in Hermes' credential pool but its refresh token is rejected as of 2026-09-03: `hermes model` re-auth is an interactive browser login. Left in the table as a declared fallback, deliberately NOT preferred by any route until it is re-authenticated."
     },
 
     "anthropic-opus": {
@@ -74,25 +90,25 @@
   "routes": [
     {
       "task_class": "research",
-      "prefer": ["local-qwen", "hermes-codex", "anthropic-opus"],
+      "prefer": ["local-qwen", "hermes-copilot", "anthropic-opus"],
       "max_cost_per_1k": 1.0,
       "_why": "Mining public forums is high-volume and low-stakes. Keep it free."
     },
     {
       "task_class": "draft",
-      "prefer": ["anthropic-opus", "hermes-codex", "local-qwen"],
+      "prefer": ["anthropic-opus", "hermes-copilot", "local-qwen"],
       "min_quality": 3,
       "_why": "Anything a human will put their name on gets the strongest writer."
     },
     {
       "task_class": "draft.reply",
-      "prefer": ["hermes-codex", "anthropic-opus"],
+      "prefer": ["hermes-copilot", "anthropic-opus"],
       "min_quality": 3,
       "_why": "Short public replies: quality matters, volume is low, cost is not the constraint."
     },
     {
       "task_class": "judge",
-      "prefer": ["hermes-codex", "anthropic-opus"],
+      "prefer": ["hermes-copilot", "anthropic-opus"],
       "deny": ["local-qwen"],
       "min_quality": 3,
       "needs_capabilities": ["judge"],
@@ -100,7 +116,7 @@
     },
     {
       "task_class": "classify",
-      "prefer": ["local-qwen", "hermes-codex"],
+      "prefer": ["local-qwen", "hermes-copilot"],
       "max_cost_per_1k": 1.0
     },
     {
@@ -112,7 +128,7 @@
   ],
 
   "default": {
-    "prefer": ["hermes-codex", "local-qwen", "anthropic-opus"],
+    "prefer": ["hermes-copilot", "local-qwen", "anthropic-opus"],
     "min_quality": 2
   }
 }

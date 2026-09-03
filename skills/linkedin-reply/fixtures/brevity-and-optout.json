@@ -14,7 +14,7 @@
       "at most 4 sentences"
     ],
     "route_route": "draft.reply",
-    "route_provider": "hermes-codex",
+    "route_provider": "hermes-copilot",
     "route_denies": ["local-qwen"]
   }
 }

@@ -1,0 +1,7 @@
+{
+  "name": "sourced-and-counted",
+  "provenance": "The auditable version: every quote dated and linked, a numeric distinct-author count, Contradicts present rather than omitted, and a verdict from the declared vocabulary.",
+  "expect_verdict": "clean",
+  "expect_defects": [],
+  "output": "Hypothesis: Recruiters can tell AI-written outreach and it lowers reply rates.\n\nSupports\n- \"I can spot the ChatGPT cadence in two seconds and I archive it\" -- u/example1, 2026-08-24, https://reddit.com/r/recruiting/comments/aaa\n- \"every one of them opens the same way now\" -- u/example2, 2026-08-27, https://reddit.com/r/recruiting/comments/bbb\n\nContradicts\n- \"half my best hires came from templated sequences, nobody cares\" -- u/example3, 2026-08-29, https://reddit.com/r/recruiting/comments/ccc\n\nAdjacent\n- 4 threads on req load, unrelated to authorship.\n\nAuthor count: 9 distinct authors support, 4 contradict.\n\nVerdict: mixed\n"
+}

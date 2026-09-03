@@ -1,0 +1,7 @@
+{
+  "name": "duplicated-signature",
+  "provenance": "The Cool Blew defect: candidates scored 100/100 on the deterministic gate while containing the signature name twice. The LLM judge caught it; the lint did not. Here the deterministic layer catches it.",
+  "expect_verdict": "blocked",
+  "expect_defects": ["signature_once"],
+  "output": "Identity: high\nFetch status: ok\n\nSubject: Two service pages return a 404\n\nBody:\nTwo links in your services menu return a 404. Those two pages are unreachable from the menu. Worth twenty minutes?\n\nPatrick\n\nBest,\nPatrick\n\nClaim table\n| Claim | Source in prospect_record |\n| --- | --- |\n| two service links return 404 | Observations, line 2 |\n\nCompliance status: NOT SATISFIED\nSend status: NOT SENDABLE (Gate 2 NO-GO)\n"
+}

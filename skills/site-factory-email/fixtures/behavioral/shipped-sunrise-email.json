@@ -1,0 +1,13 @@
+{
+  "name": "shipped-sunrise-email",
+  "provenance": "The email Site Factory actually produced and certified: PASS, score 90.0, evidence_fidelity 5/5. Quoted from the 2026-09-01 adversarial teardown, finding 4. This is the canonical negative fixture -- if Patrick OS ever stops blocking it, the system has regressed to the state the teardown found.",
+  "expect_verdict": "blocked",
+  "expect_defects": [
+    "forbid_perception_language",
+    "forbid_manufactured_evidence",
+    "require_sections",
+    "require_phrases",
+    "claims_have_sources"
+  ],
+  "output": "Subject: Quick question about your website\n\nHi there,\n\nI was looking at your site and noticed the same review from \"Dana Reyes\" appears three times on your homepage. To a new visitor, that looks like a copy-paste error rather than a full roster of happy clients.\n\nI can replace those duplicates with distinct, verified reviews and clean up the encoding errors in your services section. Happy to walk through it.\n\nPatrick\n"
+}

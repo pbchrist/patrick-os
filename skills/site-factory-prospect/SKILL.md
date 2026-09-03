@@ -28,6 +28,11 @@ inputs:
     type: string
     required: false
     description: What ties claimed_url to business_name — matched tokens, phone, address, schema.org name.
+output_checks:
+  - check: forbid_perception_language
+  - check: forbid_manufactured_evidence
+  - check: forbid_hype
+  - check: forbid_email_address
 ---
 
 # site-factory-prospect
