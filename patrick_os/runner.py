@@ -119,8 +119,30 @@ def _interpolate(text, bound_inputs):
     return _PLACEHOLDER.sub(replace, text)
 
 
+def _prepare_retrieval(skill, provided, *, base=None):
+    """Populate source material before inference for skills with external sources."""
+    prepared = dict(provided)
+    if skill.slug != "reddit-mine":
+        return prepared
+    backend = prepared.get("retrieval_backend") or "manual-export"
+    if backend == "manual-export":
+        return prepared
+    from . import retrieval
+    try:
+        bundle = retrieval.fetch("reddit", backend, prepared, base=base)
+        prepared["retrieved_material"] = retrieval.render_bundle(bundle)
+    except retrieval.RetrievalError as exc:
+        # The skill has a defined failure report. Preserve the retrieval failure as
+        # source material so the worker can emit that shape without inventing facts.
+        prepared["retrieved_material"] = json.dumps({
+            "source": "reddit", "backend": backend, "retrieval_error": str(exc)
+        })
+    return prepared
+
+
 def plan(skill, provided, *, base=None, table=None):
     """Compose a work order and resolve a route, without calling anything."""
+    provided = _prepare_retrieval(skill, provided, base=base)
     bound = skill.bind(provided)
     work_order = compose(skill, bound, base=base)
     table = table or route_table.load(base=base)

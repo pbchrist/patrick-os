@@ -29,6 +29,11 @@ inputs:
     required: false
     default: manual-export
     description: How the threads are obtained, from config/retrieval.json. The skill's logic does not change with the backend; only where the text comes from does.
+  - name: retrieved_material
+    type: string
+    required: false
+    default: ""
+    description: Source bundle injected by Patrick OS retrieval, or pasted/exported source material for manual-export.
   - name: min_quotes
     type: integer
     required: false
@@ -84,10 +89,11 @@ permalink, and an explicit list of the readings the evidence does *not* support.
 
 1. Restate `pain_hypothesis` as a claim that could be shown false, and write down
    what evidence would falsify it. Both go in the report header.
-2. Obtain threads in r/{{ subreddit }} from the last {{ window_days }} days via
-   the `{{ retrieval_backend }}` backend. Do not attempt a different backend
-   than the one declared, and do not work around a block.
-   **If you cannot read them** — anti-bot challenge, rate limit, no retrieval tool
+2. Analyze the source bundle supplied in `retrieved_material`. Patrick OS obtains
+   it through the declared `{{ retrieval_backend }}` before the worker runs. For
+   `manual-export`, the bundle is pasted/exported material supplied by the human.
+   Do not browse Reddit yourself and do not attempt a different backend.
+   **If `retrieved_material` is empty or reports a retrieval failure** — anti-bot challenge, rate limit, no retrieval tool
    available to you, any reason — stop here and emit the declared report format
    with every section present, `Author count: 0`, and
    `Verdict: insufficient evidence`, naming the retrieval failure verbatim under

@@ -11,9 +11,9 @@
     "",
     "status: 'available'   implemented and verified",
     "        'declared'    a real option, nothing here implements it yet",
-    "        'blocked'     tried and does not work; the reason is recorded"
+    "        'blocked'     tried and does not work; the reason is recorded",
+    "        'available-with-credentials' implemented; needs credentials before use"
   ],
-
   "sources": {
     "reddit": {
       "label": "Reddit threads and comments",
@@ -31,10 +31,11 @@
           "note": "The current default precisely because it has no failure mode the skill can be blamed for."
         },
         "reddit-api": {
-          "status": "declared",
+          "status": "available-with-credentials",
           "how": "Reddit's official API with a registered script app (OAuth client credentials).",
-          "needs": "A registered app id and secret in the environment. Rate-limited but reliable and permitted.",
-          "note": "The correct long-term backend. Not implemented here."
+          "needs": "REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET from one free Reddit OAuth app; no Reddit username/password required.",
+          "note": "Implemented. Set the two env vars, then use retrieval_backend=reddit-api. Keep manual-export as default until credentials exist.",
+          "implemented_by": "patrick_os.retrieval.fetch_reddit"
         },
         "pushshift-style-archive": {
           "status": "declared",

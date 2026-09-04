@@ -106,6 +106,8 @@ category error, and the skill's failure-modes section now says so.
 
 `config/retrieval.json` declares backends per source with an explicit status, so
 a blocked source is a backend swap rather than a skill rewrite. `agent-browse` is
-`blocked` with its reason recorded; the default is `manual-export`, which always
-works; the official Reddit API is `declared` and is the correct long-term
-backend.
+`blocked` with its reason recorded. `reddit-api` is now implemented in
+`patrick_os.retrieval` and performs public app-only OAuth retrieval *before* the
+model runs; it needs `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET`. No Reddit
+username/password is required. `manual-export` remains the default until those
+two environment variables are installed.
