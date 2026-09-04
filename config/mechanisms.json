@@ -25,7 +25,7 @@
       ],
       "tiers": ["note", "audit", "pilot", "build"],
       "status": "blocked",
-      "_note": "Site Factory is the EXECUTOR for this mechanism, not the decision engine that chooses it. Both of its gates are NO-GO; see projects/site-factory.md."
+      "_note": "Site Factory is the EXECUTOR for this mechanism, not the decision engine that chooses it. Status blocked is about the GATES, not the code: 10 of 12 teardown findings were re-verified fixed on 2026-09-03, and the two still live were repaired on branch fix/site-factory-correctness. Gate 1 and Gate 2 remain NO-GO because SF-10 leaves the benchmark irreproducible, so no measured quality claim is available. See projects/site-factory.md."
     },
 
     "positioning": {

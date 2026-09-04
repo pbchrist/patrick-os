@@ -45,7 +45,45 @@ Any live send before Gate 2 clears. Gate 2 additionally requires legal
 compliance, entity-verification accuracy, and buyer qualification — "none of
 which currently exist in any form. Not weeks away."
 
-## Verified defects that constrain every skill scoped here
+## Defect status — re-verified by execution 2026-09-03
+
+All twelve teardown findings were re-run against branch head `3e050f0`, not read.
+Commit `95bd2a3` ("audit repair architecture") had already repaired most of them.
+**Ten of twelve are fixed.** The list below is kept because the skills gate
+against these failure *shapes* regardless of whether the current code exhibits
+them — defence in depth against a regression, not a description of live bugs.
+
+| Finding | Status | Evidence |
+|---|---|---|
+| SF-01 kill switch absent | fixed | `outbound_guard` fails closed |
+| SF-02 severity slip | fixed | `observable_findings()` emits high/medium/low |
+| SF-03 crawler failure sold | fixed | unreachable → `qualified: False, needs_manual_check` |
+| SF-04 no CAN-SPAM | fixed | compliance body, suppression, caps, circuit breakers |
+| SF-05 single-token identity | fixed | `score>=60 and name_hits>=1 and signals>=2` |
+| SF-06 arbitrary recipient | fixed | requires `affiliated` + `score>=70` |
+| SF-07 judge contamination | fixed | no exemplar reaches writer or judge |
+| SF-08 lint eliminates | fixed | `_eligible` filters on blocking only |
+| SF-09 NEITHER discards pool | fixed | round-robin with win counting |
+| SF-10 benchmark irreproducible | **OPEN** | original inputs gitignored, not in the repo |
+| SF-11 vacuous diversity | fixed | `enough = len(outputs) >= 2` |
+| SF-12 no buyer layer | fixed | `buyer_qualification` gates selection |
+
+Two defects found live on 2026-09-03 and fixed on branch
+`fix/site-factory-correctness` (committed locally, **not pushed**):
+
+- **The independent judge could not run at all.** `llm_client._hermes_json`
+  passed `--reasoning`, `--safe-mode`, and `--query-file`; `hermes chat` v0.13.0
+  rejects all three with exit 2. The whole SF-07 repair rests on that judge. Now
+  probes `hermes chat --help` and passes only accepted flags. A real judge call
+  through hermes/copilot now returns successfully.
+- **SF-10's reachable half.** `validate_offer_copy.py` exited 0 on zero cases, so
+  a missing benchmark and a passing one were indistinguishable. Now exits 2 with
+  an explanation and reports `benchmark_valid: false` with a reason.
+
+SF-10 itself remains open: the five-business inputs are not in the repository and
+are not recoverable from it.
+
+## The original findings, as recorded by the teardown
 
 Verified by execution in the teardown, not inferred:
 
