@@ -55,6 +55,34 @@ def resolve_command(provider):
     return found
 
 
+def probe(provider, *, timeout=8):
+    """Binary and declared provider present in Hermes' credential pool.
+
+    Checked against `hermes auth` output rather than by making a call: a real
+    call costs a model turn, and the question here is whether the credential
+    exists, which the pool answers directly.
+    """
+    try:
+        resolved = resolve_command(provider)
+    except TransportError as error:
+        return False, str(error)
+    wanted = provider.config.get("hermes_provider")
+    if not wanted:
+        return True, "cli present; no hermes provider declared"
+    try:
+        listed = subprocess.run([resolved, "auth"], input="5\n", text=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                timeout=timeout, check=False).stdout or ""
+    except (OSError, subprocess.SubprocessError) as error:
+        return False, f"could not read hermes credential pool: {type(error).__name__}"
+    if re.search(rf"^{re.escape(wanted)}\s*\(", listed, re.MULTILINE):
+        return True, (f"{wanted!r} in hermes credential pool "
+                      "(pool membership; token validity is only knowable on use)")
+    pool = re.findall(r"^(\w[\w-]*)\s*\(\d+ credential", listed, re.MULTILINE)
+    return False, (f"{wanted!r} NOT in hermes credential pool; pool holds: "
+                   + (", ".join(pool) or "(none)"))
+
+
 def build_argv(provider, prompt):
     argv = [resolve_command(provider), "chat", "-Q"]
     if provider.config.get("hermes_provider"):

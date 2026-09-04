@@ -19,7 +19,9 @@
       "[G-007]"
     ],
     "route_route": "draft",
-    "route_provider": "anthropic-opus",
-    "route_denies": ["local-qwen"]
-  }
+    "route_provider": "codex-cli",
+    "route_min_quality": 3,
+    "route_free": true
+  },
+  "_route_note": "Asserts the ROUTE PROPERTY (strong enough, and free) alongside the current choice. Fixtures used to pin anthropic-opus and deny local-qwen; both were artifacts of a stale endpoint that made local look unusable. Pinning a vendor name meant an infrastructure audit broke six unrelated fixtures."
 }

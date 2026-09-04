@@ -3,6 +3,7 @@
 import unittest
 
 from patrick_os import runner, skills, voice
+from patrick_os.router import TaskSpec, resolve
 from patrick_os.router import table as route_table
 
 from tests.support import REPO, TempRootTest
@@ -166,7 +167,9 @@ class DryRunTest(TempRootTest):
 
         record = runner.run(skill, {"topic": "x"}, execute=True, base=self.root,
                             transport=transport)
-        self.assertEqual(seen["provider"], "anthropic-opus")
+        table = route_table.load(base=self.root)
+        self.assertEqual(seen["provider"],
+                         resolve(TaskSpec("draft"), table).chosen.key)
         self.assertFalse(record["sent"])
         self.assertEqual(
             (self.root / "runs" / record["run_id"] / "output.md").read_text(), "drafted text")
@@ -180,16 +183,19 @@ class FailoverTest(TempRootTest):
         skill = skills.load_skill("demo", self.root)
         tried = []
 
+        table = route_table.load(base=self.root)
+        order = [c.key for c in resolve(TaskSpec("draft"), table).candidates]
+
         def transport(prompt, provider):
             tried.append(provider.key)
-            if provider.key == "anthropic-opus":
+            if provider.key == order[0]:
                 raise OSError("[Errno 61] Connection refused")
             return "second provider answered"
 
         record = runner.run(skill, {"topic": "x"}, execute=True, base=self.root,
                             transport=transport)
-        self.assertEqual(tried, ["anthropic-opus", "hermes-copilot"])
-        self.assertEqual(record["provider"], "hermes-copilot")
+        self.assertEqual(tried, order[:2])
+        self.assertEqual(record["provider"], order[1])
         self.assertFalse(record["attempts"][0]["ok"])
         self.assertIn("Connection refused", record["attempts"][0]["error"])
 
@@ -203,8 +209,9 @@ class FailoverTest(TempRootTest):
         with self.assertRaises(runner.RunError) as caught:
             runner.run(skill, {"topic": "x"}, execute=True, base=self.root,
                        transport=transport)
-        self.assertIn("anthropic-opus", str(caught.exception))
-        self.assertIn("hermes-copilot", str(caught.exception))
+        table = route_table.load(base=self.root)
+        for candidate in resolve(TaskSpec("draft"), table).candidates:
+            self.assertIn(candidate.key, str(caught.exception))
 
 
 class ContainmentTest(TempRootTest):

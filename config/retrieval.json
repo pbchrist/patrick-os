@@ -1,0 +1,47 @@
+{
+  "_comment": [
+    "Retrieval backends. A skill declares WHAT it needs to read; this declares HOW,",
+    "so a blocked source is a backend swap rather than a skill rewrite.",
+    "",
+    "This exists because reddit-mine failed twice on a real run and the failure was",
+    "misread. Reddit served an anti-bot challenge to a logged-out agent read. That",
+    "is a RETRIEVAL-LAYER failure -- nothing about the model, the provider, or the",
+    "routing was implicated, and changing any of them would not have moved it. The",
+    "skill's job is to refuse to fabricate when retrieval fails, which it did.",
+    "",
+    "status: 'available'   implemented and verified",
+    "        'declared'    a real option, nothing here implements it yet",
+    "        'blocked'     tried and does not work; the reason is recorded"
+  ],
+
+  "sources": {
+    "reddit": {
+      "label": "Reddit threads and comments",
+      "default_backend": "manual-export",
+      "backends": {
+        "agent-browse": {
+          "status": "blocked",
+          "how": "Ask the model's own browsing tools to read the subreddit directly.",
+          "blocked_reason": "Verified 2026-09-03 and 2026-09-04: Reddit serves a 'Prove your humanity' anti-bot challenge to logged-out programmatic reads. The worker correctly refused to fabricate and reported the failure both times.",
+          "would_fix": "Nothing on the model side. This needs an authenticated or API-based path."
+        },
+        "manual-export": {
+          "status": "available",
+          "how": "A human reads the window and pastes threads, or exports them, into the skill's input. Slow, and it always works.",
+          "note": "The current default precisely because it has no failure mode the skill can be blamed for."
+        },
+        "reddit-api": {
+          "status": "declared",
+          "how": "Reddit's official API with a registered script app (OAuth client credentials).",
+          "needs": "A registered app id and secret in the environment. Rate-limited but reliable and permitted.",
+          "note": "The correct long-term backend. Not implemented here."
+        },
+        "pushshift-style-archive": {
+          "status": "declared",
+          "how": "A third-party archive of Reddit content.",
+          "note": "Coverage and freshness vary, and the window matters for this skill: an archive lagging the requested window silently changes what is being measured."
+        }
+      }
+    }
+  }
+}

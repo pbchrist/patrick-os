@@ -24,6 +24,11 @@ inputs:
     required: false
     default: 14
     description: How far back to read. Older threads need a dated caveat.
+  - name: retrieval_backend
+    type: string
+    required: false
+    default: manual-export
+    description: How the threads are obtained, from config/retrieval.json. The skill's logic does not change with the backend; only where the text comes from does.
   - name: min_quotes
     type: integer
     required: false
@@ -63,8 +68,15 @@ permalink, and an explicit list of the readings the evidence does *not* support.
 
 ## Prerequisites
 
-- Public, logged-out reading only. No authenticated session, no account.
-- Rate limiting respected; this is not a scrape.
+- A working retrieval backend. **This skill does not assume it can read Reddit
+  directly**, and direct agent browsing is currently `blocked`: verified twice on
+  real runs, Reddit serves a "Prove your humanity" challenge to logged-out
+  programmatic reads. See `config/retrieval.json`.
+- That is a retrieval-layer failure and nothing else. No model, provider, or
+  routing change addresses it, and swapping any of them would not have moved it.
+  The backend is `{{ retrieval_backend }}`.
+- Public reading only, whichever backend is used. No scraping around a block,
+  no account impersonation, rate limits respected.
 - The hypothesis is written down *before* reading. A hypothesis formed after
   reading is a summary wearing a hypothesis costume.
 
@@ -72,7 +84,9 @@ permalink, and an explicit list of the readings the evidence does *not* support.
 
 1. Restate `pain_hypothesis` as a claim that could be shown false, and write down
    what evidence would falsify it. Both go in the report header.
-2. Read threads in r/{{ subreddit }} from the last {{ window_days }} days.
+2. Obtain threads in r/{{ subreddit }} from the last {{ window_days }} days via
+   the `{{ retrieval_backend }}` backend. Do not attempt a different backend
+   than the one declared, and do not work around a block.
    **If you cannot read them** — anti-bot challenge, rate limit, no retrieval tool
    available to you, any reason — stop here and emit the declared report format
    with every section present, `Author count: 0`, and
@@ -126,7 +140,11 @@ apology, and not a summary of the attempt.
 - **Selection by search term.** Searching for the phrasing in the hypothesis
   finds the hypothesis. Read threads, then filter.
 - **Stale window presented as current.** A 2024 thread quoted without its date
-  reads as current sentiment.
+  reads as current sentiment. An archive backend lagging the requested window
+  silently changes what is being measured; state the backend in the report.
+- **Blaming the model for a retrieval failure.** Observed twice. Reddit blocking
+  a logged-out read says nothing about the model, the provider, or the routing,
+  and reaching for a different model in response is a category error.
 - **Drift into diagnosis.** The moment the report proposes what to build, it has
   left its job and become an argument.
 

@@ -52,7 +52,8 @@ evidence_fidelity 5/5. Behavioral fixtures run offline, with no model.
 No install. No virtualenv. No dependencies. Python 3.9 or newer.
 
 ```sh
-./patrick doctor              # what is configured, what is reachable
+./patrick doctor --probe      # what is ACTUALLY reachable, tested not inferred
+./patrick judges              # which independent judge pairs exist right now
 ./patrick skills list
 ./patrick skills show reddit-mine --body
 ./patrick route judge.copy    # explain a routing decision, calling nothing
@@ -62,7 +63,7 @@ No install. No virtualenv. No dependencies. Python 3.9 or newer.
 ./patrick select --profile p.json      # choose a mechanism; deterministic
 ./patrick result record --outcome no_reply --evidence '...'  # what happened
 ./patrick voice --strategy    # rules about what is worth pursuing
-./patrick test                # 248 checks
+./patrick test                # 267 checks
 ```
 
 `patrick run` is a dry run: it composes the work order and resolves the route,
@@ -81,8 +82,8 @@ a file. **Nothing in v1 sends anything anywhere** — see decision 0004.
 | `schedules/` | Declarative recurring work. Names a skill; contains no logic.   |
 | `decisions/` | Things that stay decided.                                       |
 | `tests/`     | The unit suite. `patrick test` runs it alongside skill fixtures. |
-| `config/`    | `routes.json` (model routing) and `mechanisms.json` (intervention types). |
-| `docs/`      | `ARCHITECTURE.md` — the pipeline, the three axes, and what is deliberately unbuilt. |
+| `config/`    | `routes.json` (model routing), `mechanisms.json` (intervention types), `retrieval.json` (how sources are read). |
+| `docs/`      | `ARCHITECTURE.md` — the pipeline and the three axes. `TOPOLOGY.md` — the audited model and retrieval infrastructure. |
 | `runs/`      | Local run artifacts. Gitignored.                                |
 
 ## How the pieces fit

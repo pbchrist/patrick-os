@@ -387,6 +387,62 @@ def cmd_result(args):
     return 0
 
 
+def cmd_judges(args):
+    """Which independent judge pairs actually exist right now.
+
+    Answers the only question that matters about judge independence: given who
+    wrote something, is there a reachable judge from a DIFFERENT vendor?
+    """
+    from .router import adapters
+
+    table = route_table.load(base=args.root)
+    reachable = {}
+    for key, provider in sorted(table.providers.items()):
+        ok, detail = adapters.probe(provider) if args.probe else (None, "not probed")
+        reachable[key] = (ok, detail)
+
+    print("independence is ranked by VENDOR, not provider key: two providers from")
+    print("one vendor share a model family and a safety stack (Site Factory SF-07).")
+    print()
+    writers = [k for k, p in sorted(table.providers.items())
+               if not args.probe or reachable[k][0]]
+    if not writers:
+        print("no reachable providers")
+        return 1
+    worst = None
+    for writer in writers:
+        try:
+            candidates, _ = judging.independent_candidates(writer, base=args.root,
+                                                           table=table)
+        except judging.IndependenceError as error:
+            print(f"  {writer:18} NO INDEPENDENT JUDGE -- {error}")
+            worst = 0
+            continue
+        usable = [c for c in candidates if not args.probe or reachable[c.key][0]]
+        if not usable:
+            print(f"  {writer:18} no REACHABLE independent judge "
+                  f"(declared: {', '.join(c.key for c in candidates)})")
+            worst = 0
+            continue
+        best = usable[0]
+        strength = judging.independence_of(best, table.providers[writer])
+        worst = strength if worst is None else min(worst, strength)
+        label = {2: "strong", 1: "WEAK  "}[strength]
+        print(f"  writer {writer:18} -> judge {best.key:18} {label}  "
+              f"({table.providers[writer].vendor} vs {best.vendor})")
+    print()
+    if worst == 2:
+        print("Every reachable writer has a different-vendor judge. Independence is")
+        print("satisfied by existing infrastructure; nothing needs to be purchased or")
+        print("authenticated.")
+    elif worst == 1:
+        print("At least one writer can only be judged by its own vendor. That separates")
+        print("the model and nothing else. A second reachable vendor would fix it.")
+    else:
+        print("At least one writer has no independent judge at all.")
+    return 0
+
+
 def cmd_pipeline(args):
     """Show how much of the commercial pipeline actually has a skill behind it."""
     found = skills.list_skills(args.root)
@@ -459,28 +515,26 @@ def cmd_doctor(args):
     if table:
         import os
 
-        print("\nprovider readiness (credentials are read from the environment, "
-              "never from config):")
-        for key, provider in sorted(table.providers.items()):
-            if provider.adapter == "hermes_cli":
-                import shutil
+        from .router import adapters
 
-                command = provider.config.get("command", "hermes")
-                # Hermes holds its own credentials in its own pool. Whether THIS
-                # provider is authenticated cannot be known without making a call,
-                # so say that rather than implying readiness we did not verify.
-                state = (
-                    f"cli present; {provider.config.get('hermes_provider', '?')} auth "
-                    "not verified from here"
-                    if shutil.which(command)
-                    else f"MISSING ({command} not on PATH)"
-                )
+        print("\nproviders (credentials are read from the environment or from a CLI's "
+              "own login, never from config)")
+        if not args.probe:
+            print("  configured only -- pass --probe to test reachability for real\n")
+        for key, provider in sorted(table.providers.items()):
+            vendor = f"[{provider.vendor}]"
+            if args.probe:
+                reachable, detail = adapters.probe(provider)
+                mark = {True: "UP  ", False: "DOWN", None: "?   "}[reachable]
+                print(f"  {mark} {key:18} {vendor:18} {detail}")
             else:
-                env_name = provider.config.get("api_key_env")
-                has_env = bool(env_name and os.getenv(env_name))
-                has_inline = bool(provider.config.get("api_key"))
-                state = "ready" if (has_env or has_inline) else f"no ${env_name}"
-            print(f"  {key:16} {provider.adapter:14} {state}")
+                print(f"       {key:18} {vendor:18} {provider.adapter}")
+        if args.probe:
+            print()
+            vendors = sorted({p.vendor for p in table.providers.values()})
+            print(f"  vendors declared: {', '.join(vendors)}")
+            print("  judge independence needs two REACHABLE vendors; see "
+                  "`patrick judges`.")
     return 0 if ok else 1
 
 
@@ -589,12 +643,19 @@ def build_parser():
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_result)
 
+    p = sub.add_parser("judges", help="which independent judge pairs exist right now")
+    p.add_argument("--probe", action="store_true", default=True)
+    p.add_argument("--no-probe", dest="probe", action="store_false")
+    p.set_defaults(func=cmd_judges)
+
     p = sub.add_parser("pipeline", help="show stage and mechanism coverage")
     p.add_argument("--verbose", "-v", action="store_true")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_pipeline)
 
-    p = sub.add_parser("doctor", help="check the environment without calling a provider")
+    p = sub.add_parser("doctor", help="check the environment")
+    p.add_argument("--probe", action="store_true",
+                   help="actually test each provider's reachability")
     p.set_defaults(func=cmd_doctor)
     return parser
 

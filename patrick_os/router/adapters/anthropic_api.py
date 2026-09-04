@@ -16,6 +16,13 @@ class TransportError(RuntimeError):
     pass
 
 
+def probe(provider, *, timeout=8):
+    env_name = provider.config.get("api_key_env", "ANTHROPIC_API_KEY")
+    if os.getenv(env_name):
+        return True, f"${env_name} is set (not validated without spending a call)"
+    return False, f"${env_name} is not set"
+
+
 def complete(provider, prompt, *, timeout=120):
     env_name = provider.config.get("api_key_env", "ANTHROPIC_API_KEY")
     api_key = os.getenv(env_name)

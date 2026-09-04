@@ -25,6 +25,24 @@ def _setting(provider, key, env_key, default=None):
     return provider.config.get(key, default)
 
 
+def probe(provider, *, timeout=8):
+    """Is this endpoint actually serving? Reachability, not a completion."""
+    base = _setting(provider, "base_url", "base_url_env")
+    if not base:
+        return False, "no base_url configured"
+    request = urllib.request.Request(base.rstrip("/") + "/models")
+    key = _setting(provider, "api_key", "api_key_env")
+    if key:
+        request.add_header("Authorization", "Bearer " + key)
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.load(response)
+    except Exception as error:  # noqa: BLE001 - the reason is the answer
+        return False, f"{base}: {type(error).__name__}: {str(error)[:90]}"
+    served = [m.get("id", "?") for m in (payload.get("data") or [])]
+    return True, f"{base}: serving {', '.join(served)[:80] or '(no model list)'}"
+
+
 def complete(provider, prompt, *, timeout=120):
     base = _setting(provider, "base_url", "base_url_env")
     if not base:

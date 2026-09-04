@@ -188,7 +188,10 @@ class JudgeIndependenceTest(unittest.TestCase):
             transport=lambda p, provider: '```json\n{"verdict": "pass"}\n```',
         )
         self.assertEqual(result["model_judge"]["verdict"], "pass")
-        self.assertEqual(result["judge_provider"], "hermes-copilot")
+        self.assertNotEqual(result["judge_provider"], "anthropic-opus",
+                            "the writer must never judge itself")
+        self.assertEqual(result["independence"], 2,
+                         "a different-vendor judge is available and must be chosen")
 
 
 class BehavioralFixtureTest(unittest.TestCase):

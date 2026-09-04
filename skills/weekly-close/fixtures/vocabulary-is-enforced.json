@@ -14,7 +14,10 @@
       "[G-005]"
     ],
     "route_route": "diagnosis",
-    "route_provider": "anthropic-opus"
+    "route_provider": "codex-cli",
+    "route_min_quality": 3,
+    "route_free": true
   },
-  "_note": "must_contain is whitespace-insensitive, so these may span a line break in the skill's prose."
+  "_note": "must_contain is whitespace-insensitive, so these may span a line break in the skill's prose.",
+  "_route_note": "Asserts the route property alongside the current choice; pinning a vendor name meant an infrastructure audit broke unrelated fixtures."
 }

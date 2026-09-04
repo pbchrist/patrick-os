@@ -53,7 +53,13 @@ class CliTest(TempRootTest):
         code, out, _ = run_cli(*self.base, "route", "judge.copy")
         self.assertEqual(code, 0)
         self.assertIn("local-qwen", out)
-        self.assertIn("denied by route", out)
+        self.assertIn("preferred by route", out)
+
+    def test_route_explains_a_rejection_with_its_reason(self):
+        code, out, _ = run_cli(*self.base, "route", "research.mine",
+                               "--payload-bytes", "999999")
+        self.assertEqual(code, 0)
+        self.assertIn("exceeds provider limit", out)
 
     def test_record_feedback_on_an_output(self):
         (self.root / "a.txt").write_text("Written for Acme Dental.")

@@ -119,25 +119,51 @@ def build_prompt(skill, output, deterministic_result, context=None):
     return "\n".join(lines)
 
 
+def independence_of(judge_provider, writer_provider):
+    """How independent this judge is from that writer. Higher is better.
+
+    2 -- different vendor. Different model family, different system-prompt
+         lineage, different safety stack. This is real independence.
+    1 -- same vendor, different model. Separates the model and nothing else.
+         Clears the bar Site Factory's own llm_client enforces, and no more.
+    0 -- the writer itself. Never permitted.
+    """
+    if writer_provider is None:
+        return 2
+    if judge_provider.key == writer_provider.key:
+        return 0
+    return 2 if judge_provider.vendor != writer_provider.vendor else 1
+
+
 def independent_candidates(writer_provider_key, base=None, table=None):
     """Every eligible judge that is not the writer, strongest independence first.
 
-    Returns a list rather than one provider because the router ranks by how
-    independent a judge is, not by whether it happens to be reachable. A
-    different vendor is the better judge and is preferred; if it has no
-    credentials on this machine, falling through to a weaker-but-reachable judge
-    beats not judging at all. What is never traded away is the writer itself.
+    Ranked on VENDOR, not on provider key. Two providers from the same vendor
+    share a model family and a safety stack, so they are a weaker pair than two
+    vendors -- ranking on the key alone would have treated them as equivalent.
+
+    A list rather than one provider, because the router ranks by how independent
+    a judge is and not by whether it happens to be reachable. If the strongest
+    judge has no credentials here, falling through to a weaker but reachable one
+    beats not judging. What is never traded away is the writer itself.
     """
     table = table or route_table.load(base=base)
     decision = resolve(TaskSpec("judge", needs_capabilities=["judge"]), table)
-    candidates = [c.provider for c in decision.candidates if c.key != writer_provider_key]
-    if not candidates:
+    writer = table.providers.get(writer_provider_key) if writer_provider_key else None
+    scored = []
+    for index, candidate in enumerate(decision.candidates):
+        strength = independence_of(candidate.provider, writer)
+        if strength == 0:
+            continue
+        scored.append((-strength, index, candidate.provider))
+    if not scored:
         raise IndependenceError(
             "no judge provider is available that differs from the writer "
             f"({writer_provider_key!r}). A judge sharing a model with the writer "
             "measures similarity, not quality (Site Factory SF-07). Refusing to judge."
         )
-    return candidates, decision
+    scored.sort()
+    return [provider for _, _, provider in scored], decision
 
 
 def choose_judge(writer_provider_key, base=None, table=None):
@@ -185,6 +211,13 @@ def judge(skill, output, *, writer_provider=None, base=None, table=None,
                              "error": f"{type(error).__name__}: {error}"})
             raw = None
     result["judge_attempts"] = attempts
+    if provider is not None:
+        writer = (table or route_table.load(base=base)).providers.get(writer_provider)
+        result["independence"] = independence_of(provider, writer)
+        result["independence_note"] = {
+            2: "different vendor: different model family, system prompt, and safety stack",
+            1: "same vendor, different model: separates the model and nothing else",
+        }.get(result["independence"], "")
     if raw is None:
         raise JudgeError(
             "every independent judge failed:\n  "
@@ -236,9 +269,13 @@ def format_result(result):
         lines.append(result.get("note", ""))
         return "\n".join(lines)
     lines.append("")
+    strength = {2: "strong", 1: "weak"}.get(result.get("independence"), "?")
     lines.append(f"model judge:   {str(model.get('verdict', '?')).upper()}  "
                  f"(judge={result.get('judge_provider')}, "
-                 f"writer={result.get('writer_provider')})")
+                 f"writer={result.get('writer_provider')}, "
+                 f"independence={strength})")
+    if result.get("independence") == 1:
+        lines.append(f"  NOTE: {result.get('independence_note')}")
     for claim in model.get("unsupported_claims") or []:
         lines.append(f"  unsupported: {claim.get('quote', '')!r}")
         lines.append(f"               {claim.get('why', '')}")

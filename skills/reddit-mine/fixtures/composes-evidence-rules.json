@@ -5,7 +5,8 @@
     "subreddit": "recruiting",
     "pain_hypothesis": "Recruiters can tell AI-written outreach and it lowers reply rates",
     "window_days": 14,
-    "min_quotes": 5
+    "min_quotes": 5,
+    "retrieval_backend": "manual-export"
   },
   "expect": {
     "must_contain": [
@@ -15,11 +16,18 @@
       "[C-004]",
       "r/recruiting",
       "last 14 days",
-      "insufficient evidence"
+      "insufficient evidence",
+      "does not assume it can read Reddit"
     ],
-    "must_not_contain": ["ANTHROPIC_API_KEY", "sk-"],
+    "must_not_contain": [
+      "ANTHROPIC_API_KEY",
+      "sk-"
+    ],
     "route_route": "research",
     "route_provider": "local-qwen",
-    "route_denies": ["anthropic-opus", "openai-api"]
+    "route_denies": [
+      "anthropic-opus",
+      "openai-api"
+    ]
   }
 }

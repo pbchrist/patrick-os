@@ -14,6 +14,7 @@ REGISTRY = {
     "openai_http": ".openai_http",
     "hermes_cli": ".hermes_cli",
     "anthropic_api": ".anthropic_api",
+    "codex_cli": ".codex_cli",
 }
 
 
@@ -27,6 +28,22 @@ def get(name):
             f"unknown adapter {name!r}; known adapters: {', '.join(sorted(REGISTRY))}"
         )
     return importlib.import_module(REGISTRY[name], __name__)
+
+
+def probe(provider, *, timeout=8):
+    """Can this provider actually be reached right now? (ok, human-readable why).
+
+    Config presence is not readiness. `doctor` reported a dead endpoint as
+    "ready" because a base_url was written down, which is exactly the kind of
+    claim this whole system exists not to make.
+    """
+    module = get(provider.adapter)
+    if not hasattr(module, "probe"):
+        return None, f"{provider.adapter} has no probe; readiness unknown"
+    try:
+        return module.probe(provider, timeout=timeout)
+    except Exception as error:  # noqa: BLE001
+        return False, f"{type(error).__name__}: {str(error)[:90]}"
 
 
 def complete(provider, prompt, *, timeout=120, workdir=None):

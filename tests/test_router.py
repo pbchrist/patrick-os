@@ -108,28 +108,44 @@ class ShippedTableTest(unittest.TestCase):
     def setUp(self):
         self.table = route_table.load(REPO / "config" / "routes.json")
 
-    def test_judge_route_cannot_select_the_writer_model(self):
-        """Site Factory SF-07, verified by measurement: a judge sharing a model
-        with the writer measures nothing. That must be structural, not a habit."""
+    def test_the_judge_route_offers_more_than_one_vendor(self):
+        """SF-07 restated correctly. The old version of this test denied
+        local-qwen in the judge route, which encoded an assumption that local was
+        always the writer. Once the topology was audited, local llama.cpp turned
+        out to be one of only two reachable vendors -- denying it would have
+        removed the strongest independent judge available. The invariant is that
+        the route can express a different-vendor pair, not that any one provider
+        is excluded."""
         decision = resolve(TaskSpec("judge.copy"), self.table)
-        self.assertNotIn("local-qwen", {c.key for c in decision.candidates})
-        self.assertEqual(
-            {r.provider_key: r.reason for r in decision.rejected}["local-qwen"],
-            "denied by route",
-        )
+        vendors = {c.provider.vendor for c in decision.candidates}
+        self.assertGreaterEqual(len(vendors), 2,
+                                "the judge route must be able to offer two vendors")
 
-    def test_private_route_keeps_work_on_the_local_model(self):
+    def test_the_judge_of_a_writer_is_never_that_writer(self):
+        from patrick_os import judging
+        for writer in self.table.providers:
+            candidates, _ = judging.independent_candidates(writer, table=self.table)
+            self.assertNotIn(writer, [c.key for c in candidates])
+
+    def test_private_route_keeps_work_on_local_hardware(self):
         decision = resolve(TaskSpec("private.client-audit"), self.table)
-        self.assertEqual([c.key for c in decision.candidates], ["local-qwen"])
+        self.assertTrue(decision.candidates)
+        for candidate in decision.candidates:
+            self.assertTrue(candidate.provider.local,
+                            f"{candidate.key} is not local; client material must not leave")
 
     def test_research_stays_free(self):
         decision = resolve(TaskSpec("research.mine"), self.table)
         self.assertEqual(decision.chosen.key, "local-qwen")
+        self.assertEqual(decision.chosen.provider.cost_per_1k, 0.0)
         for candidate in decision.candidates:
             self.assertEqual(candidate.provider.cost_per_1k, 0.0)
 
-    def test_local_endpoint_declares_the_24k_body_cap(self):
-        self.assertEqual(self.table.providers["local-qwen"].max_request_bytes, 24000)
+    def test_local_endpoint_declares_its_measured_body_cap(self):
+        """Was 24000, borrowed from the Cloudflare tunnel narrative-sourcing uses.
+        That is a different route to the same box. 65536 was measured against
+        this endpoint directly on 2026-09-04."""
+        self.assertEqual(self.table.providers["local-qwen"].max_request_bytes, 65536)
 
     def test_openai_provider_does_not_reuse_the_local_api_key_variable(self):
         """OPENAI_API_KEY is set to the literal 'local' for the Qwen server in

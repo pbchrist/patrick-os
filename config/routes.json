@@ -2,162 +2,267 @@
   "_comment": [
     "Declarative model routing for Patrick OS. Task classes name work, not vendors.",
     "Credentials are never stored here -- only the NAME of the environment variable",
-    "that holds one. Editing this file is how you change which model does what;",
-    "no Python change should ever be required to add or retire a provider."
+    "that holds one, or the CLI that already owns a login. Editing this file is how",
+    "you change which model does what; no Python change should ever be required to",
+    "add or retire a provider.",
+    "",
+    "Topology audited end to end on 2026-09-04. Every endpoint below was probed and",
+    "every 'verified' note means a real completion came back, not that config looked",
+    "plausible. `vendor` is what judge independence ranks on: two providers from one",
+    "vendor share a model family and a safety stack and are the WEAK pair."
   ],
-
   "providers": {
     "local-qwen": {
       "adapter": "openai_http",
       "model": "qwen",
+      "vendor": "local-llamacpp",
       "base_url_env": "PATRICK_LOCAL_BASE_URL",
-      "base_url": "http://127.0.0.1:8082/v1",
+      "base_url": "http://100.73.250.50:8082/v1",
       "api_key_env": "PATRICK_LOCAL_API_KEY",
       "api_key": "local",
       "local": true,
-      "capabilities": ["text", "json"],
+      "capabilities": [
+        "text",
+        "json",
+        "judge",
+        "long-context"
+      ],
       "supports_tools": false,
-      "quality": 2,
+      "quality": 3,
       "cost_per_1k": 0.0,
-      "latency_class": "medium",
-      "max_request_bytes": 24000,
-      "max_context_tokens": 32000,
-      "_note": "Same endpoint Site Factory writes against. The 24k request-body cap is the measured limit of the narrative-sourcing tunnel; it is a routing constraint, not an adapter detail."
+      "latency_class": "fast",
+      "max_request_bytes": 65536,
+      "max_context_tokens": 262144,
+      "_note": "llama.cpp on patrick-beastmaster over Tailscale, serving Qwen3.8-27B-Q4_K_M, pinned to GPU0, up since 2026-09-01. VERIFIED 2026-09-04: /v1/models responds and a completion returns. This previously pointed at 127.0.0.1:8082, copied from Site Factory's .env.example, which assumes you are running ON the beastmaster box -- that stale host is the entire reason 'local-qwen' was refusing connections. max_request_bytes 65536 is MEASURED here (8/32/64KB bodies all succeeded); the 24000 figure that used to sit in this slot belongs to the Cloudflare tunnel narrative-sourcing uses, which is a different route to the same machine."
     },
-
+    "local-qwen-36": {
+      "adapter": "openai_http",
+      "model": "qwen",
+      "vendor": "local-llamacpp",
+      "base_url": "http://100.73.250.50:8081/v1",
+      "api_key": "local",
+      "local": true,
+      "capabilities": [
+        "text",
+        "json",
+        "judge",
+        "long-context"
+      ],
+      "quality": 3,
+      "cost_per_1k": 0.0,
+      "latency_class": "fast",
+      "max_request_bytes": 65536,
+      "_note": "DOWN as of 2026-09-04, and not for a config reason: llama-server.service was in a CUDA OOM crash loop, restart counter 8429, having written a 490MB log. It loads Qwen3.6-27B-Q6_K (21G) with no CUDA_VISIBLE_DEVICES pinning, so it targets GPU0, which the 8082 service already holds at 20.4/24GB. The idle GPU1 has only 16GB, so the Q6_K weights do not fit there either. The loop was stopped (systemctl stop llama-server.service); bringing it back needs a model that fits GPU1 or a smaller quant. Declared here so the topology is complete, and preferred by no route."
+    },
+    "codex-cli": {
+      "adapter": "codex_cli",
+      "model": null,
+      "vendor": "openai",
+      "command": "codex",
+      "sandbox": "read-only",
+      "auth_file": "~/.codex/auth.json",
+      "local": false,
+      "capabilities": [
+        "text",
+        "json",
+        "judge",
+        "long-context"
+      ],
+      "supports_tools": true,
+      "quality": 5,
+      "cost_per_1k": 0.0,
+      "latency_class": "slow",
+      "_note": "OpenAI Codex through its own CLI, on the ChatGPT OAuth already in ~/.codex/auth.json (auth_mode chatgpt, refreshed 2026-09-04). VERIFIED: `codex exec` returns. No API key is read or required. This is the credential Site Factory's SITE_FACTORY_JUDGE_PROVIDER=openai-codex wants -- `openai-codex` is a CURRENT Hermes provider, not an obsolete alias, but it needs the credential registered in Hermes' own pool, which holds only copilot and nous. Going through the Codex CLI uses the credential that exists rather than asking for one that does not."
+    },
     "hermes-copilot": {
       "adapter": "hermes_cli",
       "model": "gpt-4.1",
+      "vendor": "github-copilot",
       "command": "hermes",
       "hermes_provider": "copilot",
       "isolate": true,
       "max_turns": 4,
       "extra_args": [],
       "local": false,
-      "capabilities": ["text", "json", "judge"],
+      "capabilities": [
+        "text",
+        "json",
+        "judge"
+      ],
       "supports_tools": true,
       "quality": 4,
       "cost_per_1k": 0.0,
       "latency_class": "slow",
-      "_note": "Reuses Hermes' existing credential pool; no API key is copied into Patrick OS. Verified working on this machine 2026-09-03 with gpt-4.1 and gpt-4o. Site Factory's .env points at SITE_FACTORY_JUDGE_PROVIDER=openai-codex, for which `hermes auth` shows NO stored credential here, so that judge path is currently dead. isolate:true adds --ignore-rules --ignore-user-config so a work order does not inherit Hermes' own AGENTS.md, SOUL.md, memory, or preloaded skills."
+      "_note": "Hermes' existing copilot credential (gh auth token). VERIFIED with gpt-4.1 and gpt-4o. isolate:true adds --ignore-rules --ignore-user-config so a work order does not inherit Hermes' own AGENTS.md, SOUL.md, memory or preloaded skills."
     },
-
     "hermes-copilot-4o": {
       "adapter": "hermes_cli",
       "model": "gpt-4o",
+      "vendor": "github-copilot",
       "command": "hermes",
       "hermes_provider": "copilot",
       "isolate": true,
       "max_turns": 4,
-      "extra_args": [],
       "local": false,
-      "capabilities": ["text", "json", "judge"],
+      "capabilities": [
+        "text",
+        "json",
+        "judge"
+      ],
       "supports_tools": true,
       "quality": 3,
       "cost_per_1k": 0.0,
       "latency_class": "slow",
-      "_note": "A second model on the same Hermes credential, verified working 2026-09-03. Exists so judging is possible at all on a one-provider machine: with only hermes-copilot declared, choose_judge() had nothing independent to fall back to and refused. Same-vendor, same-credential independence is WEAKER than cross-vendor -- it separates the model but not the provider's system prompt or safety stack. It clears the bar Site Factory's own llm_client enforces (judge model must differ from writer model) and no more. Re-authenticating hermes-nous, or setting ANTHROPIC_API_KEY, is the real upgrade."
+      "_note": "Second model on the same credential and therefore the same vendor. Kept as a last-resort judge only: it separates the model and nothing else. Now that local-qwen and codex-cli are both reachable, a same-vendor pair should never actually be needed."
     },
-
     "hermes-nous": {
       "adapter": "hermes_cli",
       "model": "Hermes-4-405B",
+      "vendor": "nous",
       "command": "hermes",
       "hermes_provider": "nous",
       "isolate": true,
-      "max_turns": 1,
+      "max_turns": 4,
       "local": false,
-      "capabilities": ["text", "json", "judge"],
+      "capabilities": [
+        "text",
+        "json",
+        "judge"
+      ],
       "supports_tools": true,
       "quality": 4,
       "cost_per_1k": 0.0,
       "latency_class": "slow",
-      "_note": "Present in Hermes' credential pool but its refresh token is rejected as of 2026-09-03: `hermes model` re-auth is an interactive browser login. Left in the table as a declared fallback, deliberately NOT preferred by any route until it is re-authenticated."
+      "_note": "In Hermes' credential pool but its refresh token is rejected as of 2026-09-04; re-auth is an interactive browser login via `hermes model`. Declared so the topology is complete, preferred by no route, and NOT needed: independence is already satisfied by local-llamacpp vs openai."
     },
-
     "anthropic-opus": {
       "adapter": "anthropic_api",
       "model": "claude-opus-5",
+      "vendor": "anthropic",
       "api_key_env": "ANTHROPIC_API_KEY",
       "local": false,
-      "capabilities": ["text", "json", "long-context", "judge"],
+      "capabilities": [
+        "text",
+        "json",
+        "long-context",
+        "judge"
+      ],
       "supports_tools": true,
       "quality": 5,
       "cost_per_1k": 15.0,
       "latency_class": "medium",
-      "max_context_tokens": 200000
+      "max_context_tokens": 200000,
+      "_note": "Declared but unconfigured, and deliberately NOT required: no route prefers it above a provider that works here. Patrick OS must not need a purchase to run."
     },
-
     "openai-api": {
       "adapter": "openai_http",
       "model": "gpt-5.6-sol",
+      "vendor": "openai",
       "base_url_env": "PATRICK_OPENAI_BASE_URL",
       "base_url": "https://api.openai.com/v1",
       "api_key_env": "OPENAI_API_KEY_PATRICK_OS",
       "local": false,
-      "capabilities": ["text", "json", "long-context"],
+      "capabilities": [
+        "text",
+        "json",
+        "long-context"
+      ],
       "supports_tools": true,
       "quality": 4,
       "cost_per_1k": 10.0,
       "latency_class": "medium",
-      "_note": "api_key_env is deliberately NOT plain OPENAI_API_KEY: that variable is set to the literal 'local' for the Qwen server in Site Factory's .env, and reusing it would silently send a junk key to api.openai.com."
+      "_note": "Pay-per-token path to the same vendor as codex-cli, which already works on an existing login. Kept declared, preferred by nothing. api_key_env is deliberately NOT plain OPENAI_API_KEY: that name is set to the literal 'local' for the llama.cpp server in Site Factory's .env, and reusing it would send a junk key to api.openai.com."
     }
   },
-
   "routes": [
     {
       "task_class": "research",
-      "prefer": ["local-qwen", "hermes-copilot", "anthropic-opus"],
+      "prefer": [
+        "local-qwen",
+        "hermes-copilot",
+        "codex-cli"
+      ],
       "max_cost_per_1k": 1.0,
-      "_why": "Mining public forums is high-volume and low-stakes. Keep it free."
+      "_why": "Mining public forums is high-volume and low-stakes, and local inference is free and fast. Keep it on our own hardware."
     },
     {
       "task_class": "draft",
-      "prefer": ["anthropic-opus", "hermes-copilot", "local-qwen"],
+      "prefer": [
+        "codex-cli",
+        "hermes-copilot",
+        "local-qwen"
+      ],
       "min_quality": 3,
-      "_why": "Anything a human will put their name on gets the strongest writer."
+      "_why": "Anything a human signs gets the strongest writer available without a purchase."
     },
     {
       "task_class": "draft.reply",
-      "prefer": ["hermes-copilot", "anthropic-opus"],
+      "prefer": [
+        "hermes-copilot",
+        "codex-cli",
+        "local-qwen"
+      ],
       "min_quality": 3,
       "_why": "Short public replies: quality matters, volume is low, cost is not the constraint."
     },
     {
       "task_class": "judge",
-      "prefer": ["hermes-copilot", "anthropic-opus", "hermes-copilot-4o"],
-      "deny": ["local-qwen"],
+      "prefer": [
+        "local-qwen",
+        "codex-cli",
+        "hermes-copilot",
+        "hermes-copilot-4o"
+      ],
       "min_quality": 3,
-      "needs_capabilities": ["judge"],
-      "_why": "Site Factory's hardest-won lesson (SF-07): a judge that shares a model or an answer key with the writer measures nothing. The judge must differ from the writer, by construction. Order is by strength of independence, not convenience: a different vendor (anthropic-opus) separates model, system prompt and safety stack; a second model on the same credential (hermes-copilot-4o) separates only the model, and is the last resort that keeps judging possible at all on a one-provider machine."
+      "needs_capabilities": [
+        "judge"
+      ],
+      "_why": "SF-07: a judge sharing a model or an answer key with the writer measures nothing. Independence is ranked by VENDOR, not by provider key, and judging.independent_candidates does the ranking -- this list is only the eligible set. local-qwen is no longer denied: it was denied when it was the only writer, and with codex-cli and hermes-copilot both reachable it is now a legitimate independent judge for anything those two wrote."
     },
     {
       "task_class": "diagnosis",
-      "prefer": ["anthropic-opus", "hermes-copilot", "hermes-copilot-4o"],
+      "prefer": [
+        "codex-cli",
+        "hermes-copilot",
+        "local-qwen"
+      ],
       "min_quality": 3,
       "_why": "Diagnosis is where a seductive but unsupported reading does the most damage, and it is the one stage whose output every later stage inherits. It does not go to the cheap model. This is the same reasoning as the draft route, applied a stage earlier: the difference between a seductive interpretation and a defensible one is the product."
     },
     {
       "task_class": "mechanism-selection",
-      "prefer": ["anthropic-opus", "hermes-copilot", "hermes-copilot-4o"],
+      "prefer": [
+        "codex-cli",
+        "hermes-copilot",
+        "local-qwen"
+      ],
       "min_quality": 3,
       "_why": "Choosing the intervention is the decision Site Factory was making implicitly by having only one tool. It gets a strong model and, like diagnosis, must be able to conclude that nothing is warranted."
     },
     {
       "task_class": "classify",
-      "prefer": ["local-qwen", "hermes-copilot"],
+      "prefer": [
+        "local-qwen",
+        "hermes-copilot"
+      ],
       "max_cost_per_1k": 1.0
     },
     {
       "task_class": "private",
-      "prefer": ["local-qwen"],
+      "prefer": [
+        "local-qwen",
+        "local-qwen-36"
+      ],
       "require_local": true,
       "_why": "Client material and candidate PII never leave the machine."
     }
   ],
-
   "default": {
-    "prefer": ["hermes-copilot", "local-qwen", "anthropic-opus"],
+    "prefer": [
+      "local-qwen",
+      "codex-cli",
+      "hermes-copilot"
+    ],
     "min_quality": 2
   }
 }

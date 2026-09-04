@@ -89,6 +89,18 @@ def check_fixture(skill, fixture, table, base=None):
     for key in expect.get("route_denies", []):
         if key in eligible:
             failures.append(f"provider {key!r} should be ineligible but was eligible")
+    if expect.get("route_min_quality") is not None and decision.chosen:
+        actual = decision.chosen.provider.quality
+        if actual < expect["route_min_quality"]:
+            failures.append(
+                f"route chose {chosen!r} with quality {actual}, fixture requires at "
+                f"least {expect['route_min_quality']}")
+    if expect.get("route_free") and decision.chosen:
+        if decision.chosen.provider.cost_per_1k > 0:
+            failures.append(
+                f"route chose {chosen!r} which costs "
+                f"{decision.chosen.provider.cost_per_1k}/1k; fixture requires a provider "
+                "that needs no purchase")
     if expect.get("max_payload_bytes") is not None:
         size = len(work_order.encode("utf-8"))
         if size > expect["max_payload_bytes"]:

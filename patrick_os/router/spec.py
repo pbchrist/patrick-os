@@ -63,6 +63,11 @@ class Provider:
         self.max_request_bytes = config.get("max_request_bytes")
         self.max_context_tokens = config.get("max_context_tokens")
         self.local = bool(config.get("local", False))
+        # Who ultimately serves this model. Two providers from the same vendor
+        # share a model family, a system prompt lineage, and a safety stack, so
+        # they are a weaker independent pair than two vendors. Judge selection
+        # ranks on this, not on the provider key.
+        self.vendor = config.get("vendor") or key
         self.config = config
 
     def __repr__(self):
@@ -84,6 +89,7 @@ class Candidate:
     def as_dict(self):
         return {
             "provider": self.provider.key,
+            "vendor": self.provider.vendor,
             "adapter": self.provider.adapter,
             "model": self.provider.model,
             "score": round(self.score, 4),
