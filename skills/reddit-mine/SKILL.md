@@ -7,6 +7,8 @@ channel: reddit
 outputs: report
 dry_run_default: true
 stage: signal
+retrieval_source: reddit
+retrieval_query: "Find threads and comments in reddit.com/r/{{ subreddit }} from roughly the last {{ window_days }} days that bear on this claim, both for and against it: {{ pain_hypothesis }}. Search first. Return at least 12 items if they exist, each with the original reddit.com permalink, the author handle, the date, and the commenter's own words verbatim. Include items that CONTRADICT the claim — they matter as much as ones that support it."
 mechanism_agnostic: true
 investment_tier: note
 sends: false
@@ -24,11 +26,15 @@ inputs:
     required: false
     default: 14
     description: How far back to read. Older threads need a dated caveat.
-  - name: retrieval_backend
+  - name: retrieved_material
+    type: string
+    required: true
+    description: JSON list of retrieved items, each with url, title, author, date, text, via. Produced by the retrieval layer before this skill runs — this skill does not fetch.
+  - name: retrieval_notes
     type: string
     required: false
-    default: manual-export
-    description: How the threads are obtained, from config/retrieval.json. The skill's logic does not change with the backend; only where the text comes from does.
+    default: ""
+    description: What the retrieval layer reported about what worked and what was blocked.
   - name: retrieved_material
     type: string
     required: false
@@ -73,22 +79,28 @@ permalink, and an explicit list of the readings the evidence does *not* support.
 
 ## Prerequisites
 
-- A working retrieval backend. **This skill does not assume it can read Reddit
-  directly**, and direct agent browsing is currently `blocked`: verified twice on
-  real runs, Reddit serves a "Prove your humanity" challenge to logged-out
-  programmatic reads. See `config/retrieval.json`.
-- That is a retrieval-layer failure and nothing else. No model, provider, or
-  routing change addresses it, and swapping any of them would not have moved it.
-  The backend is `{{ retrieval_backend }}`.
-- Public reading only, whichever backend is used. No scraping around a block,
-  no account impersonation, rate limits respected.
+- **This skill does not fetch anything.** The retrieval layer runs first and
+  hands it `retrieved_material`; see `config/retrieval.json` and
+  `patrick retrieval probe`. That separation is deliberate: a worker that
+  retrieves its own sources can invent a permalink, and a worker given sources
+  cannot.
+- Retrieval is search-first. It searches, then extracts, then falls back to a
+  public archive where extraction is blocked — always keeping the original
+  reddit.com permalink as the citation. **A blocked direct fetch of reddit.com
+  does not mean Reddit research is unavailable**, and nothing here should be
+  written as though it does.
+- Public material only. No scraping around a block, no account impersonation,
+  rate limits respected.
 - The hypothesis is written down *before* reading. A hypothesis formed after
   reading is a summary wearing a hypothesis costume.
 
 ## Procedure
 
 1. Restate `pain_hypothesis` as a claim that could be shown false, and write down
-   what evidence would falsify it. Both go in the report header.
+   what evidence would falsify it. Both go in the report header, along with the
+   window covered — **the last {{ window_days }} days** — and the retrieval
+   backend and notes you were given. A reader cannot weigh the evidence without
+   knowing how wide the window was and how the material was obtained.
 2. Analyze the source bundle supplied in `retrieved_material`. Patrick OS obtains
    it through the declared `{{ retrieval_backend }}` before the worker runs. For
    `manual-export`, the bundle is pasted/exported material supplied by the human.
@@ -100,8 +112,9 @@ permalink, and an explicit list of the readings the evidence does *not* support.
    Supports. Do not emit prose about what you attempted, and do not reconstruct a
    single quote from memory. A retrieval failure is a fact about the retrieval,
    and the report still has to be a report (G-009).
-3. For every comment that bears on the hypothesis, capture verbatim text, author
-   handle, permalink, and date. Never paraphrase at capture time.
+3. For every item that bears on the hypothesis, carry through its verbatim text,
+   author handle, permalink and date exactly as retrieved. Never paraphrase at
+   capture time, and never smooth a quote.
 4. Sort into three buckets, and keep all three in the output:
    - **Supports** — the commenter describes the pain, unprompted.
    - **Contradicts** — the commenter describes the opposite, or describes the
@@ -128,6 +141,9 @@ apology, and not a summary of the attempt.
 
 ## Quality checks
 
+- The report header states the window covered (last {{ window_days }} days) and
+  the retrieval path, quoting `retrieval_notes`. An archive lagging the window
+  silently changes what was measured, and a reader must be able to see that.
 - Every quote has a permalink and a date. No exceptions.
 - Distinct-author count is stated as a number, not as "several" or "many".
 - The Contradicts section is present even when empty, and says "none found in
@@ -143,14 +159,20 @@ apology, and not a summary of the attempt.
   hypothesis about AI outreach.
 - **One loud thread mistaken for a pattern.** Five quotes from one 40-comment
   thread is one data point, not five. Count distinct authors, not quotes.
-- **Selection by search term.** Searching for the phrasing in the hypothesis
-  finds the hypothesis. Read threads, then filter.
+- **Selection by search term.** A retrieval query phrased as the hypothesis finds
+  the hypothesis. The query asks for material on both sides for exactly this
+  reason, and a result set with no contradicting items is a signal about the
+  query, not about the world.
 - **Stale window presented as current.** A 2024 thread quoted without its date
   reads as current sentiment. An archive backend lagging the requested window
   silently changes what is being measured; state the backend in the report.
-- **Blaming the model for a retrieval failure.** Observed twice. Reddit blocking
-  a logged-out read says nothing about the model, the provider, or the routing,
-  and reaching for a different model in response is a category error.
+- **Blaming the model for a retrieval failure.** Reddit blocking a logged-out
+  read says nothing about the model, the provider, or the routing, and reaching
+  for a different model in response is a category error.
+- **Generalizing one runtime's limits.** Patrick OS once reported autonomous
+  Reddit research impossible. That was measured on a Hermes install with no web
+  backend and stated as a fact about the world; a second install retrieves Reddit
+  fine. Capability is probed per runtime, never assumed.
 - **Drift into diagnosis.** The moment the report proposes what to build, it has
   left its job and become an argument.
 

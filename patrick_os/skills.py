@@ -152,6 +152,18 @@ class Skill:
     def investment_tier(self):
         return self.meta.get("investment_tier")
 
+    # -- retrieval ---------------------------------------------------------
+    @property
+    def retrieval_source(self):
+        """Which source this skill reads, from config/retrieval.json. None means
+        the skill is given its material and reads nothing itself."""
+        return self.meta.get("retrieval_source")
+
+    @property
+    def retrieval_query(self):
+        """Template for the retrieval request, interpolated with bound inputs."""
+        return self.meta.get("retrieval_query")
+
     @property
     def output_checks(self):
         return self.meta.get("output_checks") or []
@@ -274,6 +286,21 @@ class Skill:
                             f"config/mechanisms.json: {', '.join(registry.keys())}"
                         )
         return problems
+
+    def bind_partial(self, provided):
+        """Bind what is present, ignoring absent required inputs.
+
+        Used to interpolate a retrieval query before the retrieved material -- a
+        required input -- exists.
+        """
+        bound = {}
+        for spec in self.inputs:
+            key = spec.get("name")
+            if key in provided:
+                bound[key] = provided[key]
+            elif "default" in spec:
+                bound[key] = spec["default"]
+        return bound
 
     def validate(self):
         """Return a list of problem strings. Empty list means the skill is well-formed."""

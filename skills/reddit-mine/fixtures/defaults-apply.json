@@ -3,10 +3,15 @@
   "_note": "window_days and min_quotes are omitted; the declared defaults must reach both the input block and the interpolated procedure text.",
   "inputs": {
     "subreddit": "ExperiencedDevs",
-    "pain_hypothesis": "Senior engineers ignore recruiter outreach that omits compensation"
+    "pain_hypothesis": "Senior engineers ignore recruiter outreach that omits compensation",
+    "retrieved_material": "[\n  {\n    \"url\": \"https://www.reddit.com/r/recruiting/comments/aaa/\",\n    \"title\": \"AI outreach\",\n    \"author\": \"example1\",\n    \"date\": \"2026-08-24\",\n    \"text\": \"I can spot the ChatGPT cadence in two seconds and I archive it.\",\n    \"via\": \"archive\"\n  }\n]"
   },
   "expect": {
-    "must_contain": ["last 14 days", "min_quotes: 5", "5 distinct authors"],
+    "must_contain": [
+      "last 14 days",
+      "min_quotes: 5",
+      "5 distinct authors"
+    ],
     "route_provider": "local-qwen"
   }
 }

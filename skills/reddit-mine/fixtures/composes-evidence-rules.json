@@ -6,7 +6,8 @@
     "pain_hypothesis": "Recruiters can tell AI-written outreach and it lowers reply rates",
     "window_days": 14,
     "min_quotes": 5,
-    "retrieval_backend": "manual-export"
+    "retrieved_material": "[\n  {\n    \"url\": \"https://www.reddit.com/r/recruiting/comments/aaa/\",\n    \"title\": \"AI outreach\",\n    \"author\": \"example1\",\n    \"date\": \"2026-08-24\",\n    \"text\": \"I can spot the ChatGPT cadence in two seconds and I archive it.\",\n    \"via\": \"archive\"\n  }\n]",
+    "retrieval_notes": "Search-first via hermes-web; extraction blocked, read through the public archive."
   },
   "expect": {
     "must_contain": [
@@ -17,7 +18,8 @@
       "r/recruiting",
       "last 14 days",
       "insufficient evidence",
-      "does not assume it can read Reddit"
+      "does not fetch anything",
+      "blocked direct fetch of reddit.com\ndoes not mean Reddit research is unavailable"
     ],
     "must_not_contain": [
       "ANTHROPIC_API_KEY",

@@ -272,7 +272,11 @@ def quotes_are_sourced(text, config):
             window = line
             index = body.find(line)
             if index >= 0:
-                window = body[index: index + len(line) + 200]
+                # Look both ways. Real reports put the permalink on the line
+                # ABOVE the quote as often as below it, and a check that only
+                # looked forward flagged every correctly-cited quote in a real
+                # r/passive_income report.
+                window = body[max(0, index - 400): index + len(line) + 400]
             if not URL.search(window):
                 findings.append(Finding("quotes_are_sourced", BLOCKING,
                                         "quote has no permalink", evidence=[line.strip()[:120]]))

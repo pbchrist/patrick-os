@@ -33,7 +33,8 @@
       "latency_class": "fast",
       "max_request_bytes": 65536,
       "max_context_tokens": 262144,
-      "_note": "llama.cpp on patrick-beastmaster over Tailscale, serving Qwen3.8-27B-Q4_K_M, pinned to GPU0, up since 2026-09-01. VERIFIED 2026-09-04: /v1/models responds and a completion returns. This previously pointed at 127.0.0.1:8082, copied from Site Factory's .env.example, which assumes you are running ON the beastmaster box -- that stale host is the entire reason 'local-qwen' was refusing connections. max_request_bytes 65536 is MEASURED here (8/32/64KB bodies all succeeded); the 24000 figure that used to sit in this slot belongs to the Cloudflare tunnel narrative-sourcing uses, which is a different route to the same machine."
+      "_note": "llama.cpp on patrick-beastmaster over Tailscale, serving Qwen3.8-27B-Q4_K_M, pinned to GPU0, up since 2026-09-01. VERIFIED 2026-09-04: /v1/models responds and a completion returns. This previously pointed at 127.0.0.1:8082, copied from Site Factory's .env.example, which assumes you are running ON the beastmaster box -- that stale host is the entire reason 'local-qwen' was refusing connections. max_request_bytes 65536 is MEASURED here (8/32/64KB bodies all succeeded); the 24000 figure that used to sit in this slot belongs to the Cloudflare tunnel narrative-sourcing uses, which is a different route to the same machine. max_tokens 16000: the 2000 default truncated a sourced mining report mid-sentence and dropped its Verdict. This endpoint has a 262144-token context, so the ceiling was ours, not the model's.",
+      "max_tokens": 16000
     },
     "local-qwen-36": {
       "adapter": "openai_http",
@@ -52,7 +53,8 @@
       "cost_per_1k": 0.0,
       "latency_class": "fast",
       "max_request_bytes": 65536,
-      "_note": "DOWN as of 2026-09-04, and not for a config reason: llama-server.service was in a CUDA OOM crash loop, restart counter 8429, having written a 490MB log. It loads Qwen3.6-27B-Q6_K (21G) with no CUDA_VISIBLE_DEVICES pinning, so it targets GPU0, which the 8082 service already holds at 20.4/24GB. The idle GPU1 has only 16GB, so the Q6_K weights do not fit there either. The loop was stopped (systemctl stop llama-server.service); bringing it back needs a model that fits GPU1 or a smaller quant. Declared here so the topology is complete, and preferred by no route."
+      "_note": "DOWN as of 2026-09-04, and not for a config reason: llama-server.service was in a CUDA OOM crash loop, restart counter 8429, having written a 490MB log. It loads Qwen3.6-27B-Q6_K (21G) with no CUDA_VISIBLE_DEVICES pinning, so it targets GPU0, which the 8082 service already holds at 20.4/24GB. The idle GPU1 has only 16GB, so the Q6_K weights do not fit there either. The loop was stopped (systemctl stop llama-server.service); bringing it back needs a model that fits GPU1 or a smaller quant. Declared here so the topology is complete, and preferred by no route.",
+      "max_tokens": 16000
     },
     "codex-cli": {
       "adapter": "codex_cli",

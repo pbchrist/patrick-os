@@ -119,30 +119,45 @@ def _interpolate(text, bound_inputs):
     return _PLACEHOLDER.sub(replace, text)
 
 
-def _prepare_retrieval(skill, provided, *, base=None):
-    """Populate source material before inference for skills with external sources."""
-    prepared = dict(provided)
-    if skill.slug != "reddit-mine":
-        return prepared
-    backend = prepared.get("retrieval_backend") or "manual-export"
-    if backend == "manual-export":
-        return prepared
-    from . import retrieval
-    try:
-        bundle = retrieval.fetch("reddit", backend, prepared, base=base)
-        prepared["retrieved_material"] = retrieval.render_bundle(bundle)
-    except retrieval.RetrievalError as exc:
-        # The skill has a defined failure report. Preserve the retrieval failure as
-        # source material so the worker can emit that shape without inventing facts.
-        prepared["retrieved_material"] = json.dumps({
-            "source": "reddit", "backend": backend, "retrieval_error": str(exc)
-        })
-    return prepared
+def gather(skill, bound, *, base=None, backend=None, timeout=900):
+    """Run the skill's declared retrieval and return (payload, provenance).
+
+    Retrieval happens HERE, not inside the worker. The worker then reasons over
+    material it was handed, which means it cannot invent a permalink it never
+    received -- the same reason mechanism selection extracts a profile rather
+    than choosing one. It also makes the backend swappable without touching a
+    skill, and it is generic: nothing in this function names a skill or a source.
+    """
+    from . import retrieval as retrieval_module
+
+    query = _interpolate(skill.retrieval_query or "", bound)
+    registry = retrieval_module.load_registry(base)
+    source = (registry.get("sources") or {}).get(skill.retrieval_source)
+    if source is None:
+        raise RunError(
+            f"{skill.slug} declares retrieval_source {skill.retrieval_source!r}, "
+            "which is not in config/retrieval.json")
+    chosen = backend or source.get("default_backend")
+    chain = [b for b in (source.get("backend_order") or []) if b != chosen]
+    extras = {k: v for k, v in bound.items()
+              if k in ("subreddit", "window_days", "limit")}
+    payload = retrieval_module.retrieve(query, backend=chosen, base=base,
+                                        chain=chain, timeout=timeout, **extras)
+    provenance = {
+        "source": skill.retrieval_source,
+        "backend": payload.get("_backend", chosen),
+        "attempts": payload.get("_attempts"),
+        "runtime": payload.get("_runtime"),
+        "capability": payload.get("_capability"),
+        "query": query,
+        "item_count": len(payload.get("items") or []),
+        "notes": payload.get("notes"),
+    }
+    return payload, provenance
 
 
 def plan(skill, provided, *, base=None, table=None):
     """Compose a work order and resolve a route, without calling anything."""
-    provided = _prepare_retrieval(skill, provided, base=base)
     bound = skill.bind(provided)
     work_order = compose(skill, bound, base=base)
     table = table or route_table.load(base=base)
@@ -159,8 +174,22 @@ def plan(skill, provided, *, base=None, table=None):
 
 
 def run(skill, provided, *, execute=False, base=None, table=None, out_dir=None,
-        transport=None):
-    """Plan, then optionally execute. Writes a run record either way."""
+        transport=None, retrieve=None, backend=None):
+    """Plan, then optionally execute. Writes a run record either way.
+
+    ``retrieve`` defaults to True when the skill declares a retrieval source and
+    the run is executing: a mining skill with no material is not a dry run of
+    mining, it is a different task.
+    """
+    provided = dict(provided)
+    provenance = None
+    if retrieve is None:
+        retrieve = bool(execute and skill.retrieval_source)
+    if retrieve and skill.retrieval_source and "retrieved_material" not in provided:
+        payload, provenance = gather(skill, skill.bind_partial(provided), base=base,
+                                     backend=backend)
+        provided["retrieved_material"] = json.dumps(payload.get("items") or [], indent=2)
+        provided["retrieval_notes"] = str(payload.get("notes") or "")
     planned = plan(skill, provided, base=base, table=table)
     decision = planned["decision"]
     stamp = _stamp()
@@ -180,6 +209,8 @@ def run(skill, provided, *, execute=False, base=None, table=None, out_dir=None,
         "output_kind": skill.output_kind,
         "sent": False,
     }
+    if provenance:
+        record["retrieval"] = provenance
 
     if not execute:
         record["note"] = (

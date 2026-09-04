@@ -1,46 +1,76 @@
 {
   "_comment": [
-    "Retrieval backends. A skill declares WHAT it needs to read; this declares HOW,",
-    "so a blocked source is a backend swap rather than a skill rewrite.",
+    "How sources are read, separately from which model reasons over what is read.",
+    "A skill declares WHAT it needs; this declares HOW, so a blocked path is a",
+    "backend swap rather than a skill rewrite.",
     "",
-    "This exists because reddit-mine failed twice on a real run and the failure was",
-    "misread. Reddit served an anti-bot challenge to a logged-out agent read. That",
-    "is a RETRIEVAL-LAYER failure -- nothing about the model, the provider, or the",
-    "routing was implicated, and changing any of them would not have moved it. The",
-    "skill's job is to refuse to fabricate when retrieval fails, which it did.",
+    "Two runtimes exist on this system and they are NOT interchangeable. Patrick OS",
+    "once reported that autonomous Reddit research was impossible; that was measured",
+    "against the Mac install and stated as a fact about the world. Capability is now",
+    "PROBED from the runtime that will do the work -- `patrick retrieval probe`.",
     "",
-    "status: 'available'   implemented and verified",
-    "        'declared'    a real option, nothing here implements it yet",
-    "        'blocked'     tried and does not work; the reason is recorded",
-    "        'available-with-credentials' implemented; needs credentials before use"
+    "backend_order is a fallthrough chain, not a preference list. An empty result",
+    "from one backend is not the same finding as 'there is nothing there', and",
+    "the chain exists so the two are never confused."
   ],
+  "runtimes": {
+    "hermes-beastmaster": {
+      "transport": "ssh",
+      "ssh_target": "root@100.73.250.50",
+      "run_as": "patrick",
+      "command": "hermes",
+      "_note": "Hermes v0.20.4. toolsets hermes-cli/web/search/browser; web.search_backend=tavily, web.extract_backend=browser; default gpt-5.6-sol via openai-codex, whose credential pool holds 2 entries. VERIFIED 2026-09-04: a live search of r/passive_income returned real Reddit permalinks with content. This is the retrieval runtime."
+    },
+    "hermes-mac": {
+      "transport": "local",
+      "command": "hermes",
+      "_note": "Hermes v0.13.0. No web backend configured, browser disabled, credential pool holds only copilot and nous. CANNOT do web research, and its limits must never be generalized to Beastmaster -- doing exactly that produced the false claim that Reddit retrieval required OAuth credentials."
+    }
+  },
   "sources": {
     "reddit": {
       "label": "Reddit threads and comments",
-      "default_backend": "manual-export",
+      "default_backend": "hermes-web",
+      "backend_order": [
+        "hermes-web",
+        "reddit-archive",
+        "reddit-api",
+        "manual-export"
+      ],
       "backends": {
-        "agent-browse": {
-          "status": "blocked",
-          "how": "Ask the model's own browsing tools to read the subreddit directly.",
-          "blocked_reason": "Verified 2026-09-03 and 2026-09-04: Reddit serves a 'Prove your humanity' anti-bot challenge to logged-out programmatic reads. The worker correctly refused to fabricate and reported the failure both times.",
-          "would_fix": "Nothing on the model side. This needs an authenticated or API-based path."
+        "hermes-web": {
+          "status": "available",
+          "executable": true,
+          "runtime_requirement": "web_research",
+          "how": "Search first via Hermes' web/search toolsets, then extract with the browser, then fall back to a public archive where direct extraction is blocked. Original Reddit permalinks are preserved as the citation throughout.",
+          "verified": "2026-09-04 against r/passive_income: real permalinks and real content returned.",
+          "note": "Requires a runtime with web+search toolsets and a search backend. hermes-beastmaster has them; hermes-mac does not. Non-deterministic in practice; reddit-archive is the fallthrough when it yields nothing."
+        },
+        "reddit-api": {
+          "status": "declared",
+          "executable": false,
+          "how": "Reddit's official API with a registered script app.",
+          "note": "An OPTIONAL structured fallback, not a prerequisite. Useful for exhaustive windowed pulls where search recall is the limit. Nothing here implements it."
         },
         "manual-export": {
           "status": "available",
-          "how": "A human reads the window and pastes threads, or exports them, into the skill's input. Slow, and it always works.",
-          "note": "The current default precisely because it has no failure mode the skill can be blamed for."
+          "executable": false,
+          "how": "A human pastes or exports the threads into the skill's input.",
+          "note": "Final fallback. Slow, and it always works."
         },
-        "reddit-api": {
-          "status": "available-with-credentials",
-          "how": "Reddit's official API with a registered script app (OAuth client credentials).",
-          "needs": "REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET from one free Reddit OAuth app; no Reddit username/password required.",
-          "note": "Implemented. Set the two env vars, then use retrieval_backend=reddit-api. Keep manual-export as default until credentials exist.",
-          "implemented_by": "patrick_os.retrieval.fetch_reddit"
+        "direct-fetch": {
+          "status": "blocked",
+          "executable": false,
+          "how": "Raw HTTP GET against reddit.com while logged out.",
+          "blocked_reason": "Reddit serves a 'Prove your humanity' anti-bot challenge. Verified 2026-09-03 and 2026-09-04.",
+          "note": "Recorded so nobody tries it again and draws the wrong conclusion. A blocked direct fetch does NOT mean Reddit research is unavailable -- search-first retrieval works. Workers are explicitly told not to begin here."
         },
-        "pushshift-style-archive": {
-          "status": "declared",
-          "how": "A third-party archive of Reddit content.",
-          "note": "Coverage and freshness vary, and the window matters for this skill: an archive lagging the requested window silently changes what is being measured."
+        "reddit-archive": {
+          "status": "available",
+          "executable": true,
+          "how": "Query the Arctic Shift public Reddit archive over HTTP, directly from Python. Returns author, permalink, date and verbatim body as structured data.",
+          "verified": "2026-09-04: 34 items from r/passive_income in a 90-day window.",
+          "note": "Deterministic where hermes-web is not: the same hermes-web request returned 12 items on one run and 0 on the next, because an agent was rediscovering the archive each time and its queries timed out. Nothing here is a model, so nothing here can invent a permalink. This is the archive rung of the search-first ladder, reached because direct Reddit extraction is always blocked."
         }
       }
     }

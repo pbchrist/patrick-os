@@ -132,27 +132,9 @@ class AdapterTest(unittest.TestCase):
                             f"{name} cannot be probed, so doctor would have to guess")
 
 
-class RetrievalTest(unittest.TestCase):
-    """reddit-mine's failure was retrieval, not inference."""
-
-    def registry(self):
-        return json.loads((REPO / "config" / "retrieval.json").read_text())
-
-    def test_reddit_direct_browsing_is_recorded_as_blocked_with_a_reason(self):
-        backend = self.registry()["sources"]["reddit"]["backends"]["agent-browse"]
-        self.assertEqual(backend["status"], "blocked")
-        self.assertIn("anti-bot", backend["blocked_reason"])
-
-    def test_the_default_backend_is_one_that_works(self):
-        source = self.registry()["sources"]["reddit"]
-        default = source["default_backend"]
-        self.assertEqual(source["backends"][default]["status"], "available")
-
-    def test_a_replaceable_backend_is_declared_on_the_skill(self):
-        from patrick_os import skills
-        skill = skills.load_skill("reddit-mine", REPO)
-        names = {i["name"] for i in skill.inputs}
-        self.assertIn("retrieval_backend", names)
+# Retrieval moved to tests/test_retrieval.py when the backend registry was
+# reworked around capability probing. Keeping a thinner duplicate here would mean
+# two places to update and one of them silently going stale.
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import decisions, feedback, judging, pipeline, results, runner, selection, skills, testing, voice
+from . import decisions, feedback, judging, pipeline, results, retrieval, runner, selection, skills, testing, voice
 from .router import TaskSpec, resolve
 from .router import table as route_table
 
@@ -98,7 +98,8 @@ def cmd_run(args):
             "      Patrick OS has no send path; a human moves it or discards it.",
             file=sys.stderr,
         )
-    record = runner.run(skill, provided, execute=execute, base=args.root)
+    record = runner.run(skill, provided, execute=execute, base=args.root,
+                        retrieve=args.retrieve, backend=args.backend)
     if args.json:
         print(json.dumps(record, indent=2, sort_keys=True, default=str))
         return 0
@@ -387,6 +388,43 @@ def cmd_result(args):
     return 0
 
 
+def cmd_retrieval(args):
+    if args.action == "probe":
+        caps = retrieval.probe_all(args.root)
+        if args.json:
+            print(json.dumps({k: c.as_dict() for k, c in caps.items()}, indent=2))
+            return 0
+        print("Hermes runtimes, probed live. Capability is discovered per runtime and")
+        print("never generalized from another install.\n")
+        for key, capability in caps.items():
+            mark = "UP  " if capability.reachable else "DOWN"
+            web = "web-research YES" if capability.can_web_research else "web-research no "
+            print(f"  {mark} {key:22} {web}  {capability.detail}")
+            if capability.reachable and capability.search_backend:
+                print(f"       search={capability.search_backend} "
+                      f"extract={capability.extract_backend}")
+        able = [k for k, c in caps.items() if c.can_web_research]
+        print()
+        print(f"  web research available on: {', '.join(able) or 'NONE'}")
+        return 0 if able else 1
+
+    if args.action == "fetch":
+        payload = retrieval.retrieve(args.query, backend=args.backend, base=args.root,
+                                     timeout=args.timeout)
+        print(json.dumps(payload, indent=2))
+        return 0
+
+    registry = retrieval.load_registry(args.root)
+    for name, source in (registry.get("sources") or {}).items():
+        print(f"{name}  (default: {source['default_backend']})")
+        for backend, spec in source["backends"].items():
+            flag = "x" if spec.get("executable") else " "
+            print(f"  [{flag}] {backend:16} {spec['status']:10} {spec.get('how','')[:70]}")
+            if spec.get("blocked_reason"):
+                print(f"      blocked: {spec['blocked_reason'][:90]}")
+    return 0
+
+
 def cmd_judges(args):
     """Which independent judge pairs actually exist right now.
 
@@ -556,6 +594,11 @@ def build_parser():
     p.add_argument("--input", action="append", metavar="K=V")
     p.add_argument("--execute", action="store_true",
                    help="actually call the routed provider; still never sends anything")
+    p.add_argument("--retrieve", action="store_true", default=None,
+                   help="fetch source material first (default: on when executing a "
+                        "skill that declares a retrieval source)")
+    p.add_argument("--no-retrieve", dest="retrieve", action="store_false")
+    p.add_argument("--backend", help="override the retrieval backend")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_run)
 
@@ -643,6 +686,14 @@ def build_parser():
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_result)
 
+    p = sub.add_parser("retrieval", help="retrieval backends and runtime capability")
+    p.add_argument("action", choices=["list", "probe", "fetch"], nargs="?", default="list")
+    p.add_argument("--query")
+    p.add_argument("--backend", default="hermes-web")
+    p.add_argument("--timeout", type=int, default=900)
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_retrieval)
+
     p = sub.add_parser("judges", help="which independent judge pairs exist right now")
     p.add_argument("--probe", action="store_true", default=True)
     p.add_argument("--no-probe", dest="probe", action="store_false")
@@ -676,6 +727,8 @@ def main(argv=None):
             parser.error("feedback strategy requires --text and --evidence")
     if args.command == "select" and not (args.profile or args.json_profile):
         parser.error("select requires --profile or --json-profile")
+    if args.command == "retrieval" and args.action == "fetch" and not args.query:
+        parser.error("retrieval fetch requires --query")
     if args.command == "result" and args.action == "record":
         missing = [f for f in ("opportunity", "mechanism", "outcome", "evidence")
                    if not getattr(args, f)]
@@ -690,7 +743,7 @@ def main(argv=None):
     except (skills.SkillError, voice.VoiceError, feedback.FeedbackError,
             decisions.DecisionError, route_table.RouteTableError, runner.RunError,
             judging.JudgeError, pipeline.PipelineError, selection.SelectionError,
-            results.ResultError) as error:
+            results.ResultError, retrieval.RetrievalError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
     except FileNotFoundError as error:

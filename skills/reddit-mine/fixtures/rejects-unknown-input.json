@@ -3,7 +3,10 @@
   "inputs": {
     "subreddit": "recruiting",
     "pain_hypothesis": "x",
-    "sort_by": "hot"
+    "sort_by": "hot",
+    "retrieved_material": "[\n  {\n    \"url\": \"https://www.reddit.com/r/recruiting/comments/aaa/\",\n    \"title\": \"AI outreach\",\n    \"author\": \"example1\",\n    \"date\": \"2026-08-24\",\n    \"text\": \"I can spot the ChatGPT cadence in two seconds and I archive it.\",\n    \"via\": \"archive\"\n  }\n]"
   },
-  "expect": { "invalid_inputs": true }
+  "expect": {
+    "invalid_inputs": true
+  }
 }

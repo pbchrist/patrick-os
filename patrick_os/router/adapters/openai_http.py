@@ -57,7 +57,10 @@ def complete(provider, prompt, *, timeout=120):
             "model": provider.model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": provider.config.get("temperature", 0.2),
-            "max_tokens": provider.config.get("max_tokens", 2000),
+            # 2000 truncated a sourced Reddit report mid-sentence, losing the
+            # Verdict entirely. A report that carries verbatim quotes is long by
+            # construction; the default has to assume that.
+            "max_tokens": provider.config.get("max_tokens", 8000),
         }
     ).encode()
     if provider.max_request_bytes is not None and len(body) > provider.max_request_bytes:
