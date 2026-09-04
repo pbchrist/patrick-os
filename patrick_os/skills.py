@@ -268,6 +268,21 @@ class Skill:
         except domains.DomainError as error:
             return [str(error)]
 
+    def bind_partial(self, provided):
+        """Bind what is present, ignoring absent required inputs.
+
+        Used to interpolate a retrieval query before the retrieved material --
+        itself a required input -- exists.
+        """
+        bound = {}
+        for spec in self.inputs:
+            key = spec.get("name")
+            if key in provided:
+                bound[key] = provided[key]
+            elif "default" in spec:
+                bound[key] = spec["default"]
+        return bound
+
     def validate(self):
         """Return a list of problem strings. Empty list means the skill is well-formed."""
         problems = []
@@ -282,9 +297,21 @@ class Skill:
         for title in REQUIRED_SECTIONS:
             if title not in present:
                 problems.append(f"missing section: ## {title}")
+        seen = set()
         for spec in self.inputs:
             if not isinstance(spec, dict) or "name" not in spec:
                 problems.append(f"malformed input entry: {spec!r}")
+                continue
+            name = spec["name"]
+            if name in seen:
+                # A duplicate silently wins in binding, so a later optional entry
+                # can quietly cancel an earlier required one -- which happened,
+                # and would have let a mining skill run with no source material
+                # and report that as a finding about the world.
+                problems.append(
+                    f"input {name!r} is declared more than once; the last declaration "
+                    "silently wins when inputs are bound")
+            seen.add(name)
         if self.is_outward and self.sends:
             problems.append(
                 "outward-facing skill declares sends: true -- v1 has no send path"

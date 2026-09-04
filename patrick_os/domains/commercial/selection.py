@@ -106,12 +106,19 @@ class Candidate:
 
 
 class Selection:
-    def __init__(self, profile, eligible, unexecutable, rejected, tier):
+    def __init__(self, profile, eligible, unexecutable, rejected, tier,
+                 review_required=None):
         self.profile = profile
         self.eligible = eligible
         self.unexecutable = unexecutable
         self.rejected = rejected
         self.tier = tier
+        # Conditions that require a human before anything proceeds, whatever the
+        # mechanism. Found in operational validation: the extractor correctly set
+        # regulated_claims on a financial-claims segment, and nothing consumed
+        # it -- a profile field that exists and gates nothing is a control that
+        # only looks like one.
+        self.review_required = list(review_required or [])
 
     @property
     def chosen(self):
@@ -136,6 +143,7 @@ class Selection:
             "eligible": [c.as_dict() for c in self.eligible],
             "capability_gap": [{"mechanism": k, "reason": r} for k, r in self.unexecutable],
             "rejected": [{"mechanism": k, "reason": r} for k, r in self.rejected],
+            "review_required": self.review_required,
             "profile": self.profile.as_dict(),
         }
 
@@ -206,7 +214,17 @@ def select(profile, registry, strategy_rules=(), tier_policy=True):
              "first-class outcome"]))
 
     tier = _tier_for(profile) if tier_policy else profile.get("current_tier")
-    return Selection(profile, eligible, unexecutable, rejected, tier)
+    review = []
+    if profile.get("regulated_claims"):
+        review.append(
+            "the material makes regulated claims (medical, financial, legal or "
+            "safety); naming them as unsupported has consequences beyond a report")
+    if profile.get("identity_confidence") == "medium":
+        review.append(
+            "identity confidence is medium; the observations may belong to "
+            "someone else")
+
+    return Selection(profile, eligible, unexecutable, rejected, tier, review)
 
 
 def _tier_for(profile):
@@ -230,6 +248,11 @@ def format_selection(selection):
     lines.append(f"mechanism: {chosen.key if chosen else 'none'}")
     lines.append(f"tier:      {selection.tier}")
     lines.append("")
+    if selection.review_required:
+        lines.append("HUMAN REVIEW REQUIRED before anything proceeds:")
+        for reason in selection.review_required:
+            lines.append(f"  - {reason}")
+        lines.append("")
     lines.append("eligible, in order:")
     for candidate in selection.eligible:
         lines.append(f"  {candidate.key:16} {'; '.join(candidate.reasons)}")

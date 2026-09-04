@@ -80,6 +80,30 @@ class SF03Test(unittest.TestCase):
         self.assertEqual(result.chosen.key, "none")
 
 
+class ReviewGateTest(unittest.TestCase):
+    """Found in operational validation: the extractor set regulated_claims on a
+    financial-claims segment and nothing consumed it. A profile field that gates
+    nothing is a control that only looks like one."""
+
+    def test_regulated_claims_force_human_review(self):
+        result = selection.select(selection.Profile(regulated_claims=True), registry())
+        self.assertTrue(result.review_required)
+        self.assertIn("regulated claims", result.review_required[0])
+
+    def test_medium_identity_forces_human_review(self):
+        result = selection.select(
+            selection.Profile(identity_confidence="medium"), registry())
+        self.assertTrue(any("identity confidence" in r for r in result.review_required))
+
+    def test_a_clean_profile_needs_no_review(self):
+        self.assertEqual(selection.select(selection.Profile(), registry()).review_required,
+                         [])
+
+    def test_review_is_reported_in_the_serialised_decision(self):
+        result = selection.select(selection.Profile(regulated_claims=True), registry())
+        self.assertTrue(result.as_dict()["review_required"])
+
+
 class CapabilityGapTest(unittest.TestCase):
     def test_supported_but_unexecutable_is_not_reported_as_rejected(self):
         """"The right intervention is X and we cannot do X" is a strategic

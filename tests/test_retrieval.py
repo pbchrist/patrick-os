@@ -224,6 +224,41 @@ class ArchiveBackendTest(unittest.TestCase):
             retrieval.reddit_archive("no subreddit here")
 
 
+class RunnerWiringTest(unittest.TestCase):
+    """The retrieval path must be exercised in-process, not only end to end.
+
+    A refactor dropped Skill.bind_partial and every test still passed, because
+    nothing called the runner's gather() without a live network. The end-to-end
+    run caught it; a unit test should have.
+    """
+
+    def test_bind_partial_tolerates_the_not_yet_retrieved_input(self):
+        skill = skills.load_skill("reddit-mine", REPO)
+        bound = skill.bind_partial({"subreddit": "x", "pain_hypothesis": "y"})
+        self.assertEqual(bound["subreddit"], "x")
+        self.assertEqual(bound["window_days"], 14)
+        self.assertNotIn("retrieved_material", bound)
+
+    def test_gather_interpolates_the_query_and_records_provenance(self):
+        from patrick_os import runner
+        skill = skills.load_skill("reddit-mine", REPO)
+        captured = {}
+
+        def fake_retrieve(query, **kwargs):
+            captured["query"] = query
+            captured["kwargs"] = kwargs
+            return {"items": [{"url": "u"}], "notes": "n", "_backend": "reddit-archive"}
+
+        with mock.patch("patrick_os.retrieval.retrieve", side_effect=fake_retrieve):
+            payload, provenance = runner.gather(
+                skill, skill.bind_partial({"subreddit": "passive_income",
+                                           "pain_hypothesis": "h"}), base=REPO)
+        self.assertIn("r/passive_income", captured["query"])
+        self.assertEqual(captured["kwargs"]["subreddit"], "passive_income")
+        self.assertEqual(provenance["backend"], "reddit-archive")
+        self.assertEqual(provenance["item_count"], 1)
+
+
 class RegistryTest(unittest.TestCase):
     def registry(self):
         return json.loads((REPO / "config" / "retrieval.json").read_text())

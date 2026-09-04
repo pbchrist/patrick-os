@@ -97,6 +97,60 @@ def _hits(text, pattern):
     return [m.group(0) for m in pattern.finditer(text)]
 
 
+_FENCE = re.compile(r"```.*?```", re.S)
+_BLOCKQUOTE = re.compile(r"^\s*>.*$", re.MULTILINE)
+# Line-level, not pair-matched: evidence quotes routinely contain inner quotes
+# ("AI side hustles"), and a paired regex latches onto the inner pair and leaves
+# the surrounding quote body looking like the author's own prose.
+_QUOTE_LINE = re.compile(
+    r'^[ \t]*(?:[-*+]|\d+[.)])?[ \t]*'          # optional list marker
+    r'(?:[*_]{0,2}(?:Quote|Text|Body|Comment)[*_]{0,2}[ \t]*:'  # optional "Quote:" label,
+    r'[*_]{0,2}[ \t]*)?'                          # colon inside or outside the emphasis
+    r'["\u201c].*$',
+    re.MULTILINE)
+
+
+_QUOTED = re.compile(r"[\"\u201c][^\"\u201c\u201d\n]{12,}[\"\u201d]")
+
+
+def prose_only(text):
+    """Strip quoted source material, leaving the document's OWN voice.
+
+    A mining report is largely other people's words. Scanning those for
+    perception language or vague quantities flags the commenter, not the writer
+    -- and the only way to satisfy such a check is to paraphrase the quote, which
+    destroys the evidentiary property the report exists to provide. Verified on a
+    real r/passive_income report: all four "perception" hits and the one vague
+    count were inside verbatim Reddit quotes.
+
+    Structural checks (sections, verdict, citation resolution) still see the
+    whole document; only checks that judge WRITING use this.
+    """
+    stripped = _FENCE.sub(" ", text or "")
+    stripped = _BLOCKQUOTE.sub(" ", stripped)
+    stripped = _QUOTE_LINE.sub(" ", stripped)
+    return _QUOTED.sub(" ", stripped)
+
+
+def _voice(text, config):
+    """The span a writing-quality check should judge.
+
+    ``exempt_sections`` drops named sections first. Some sections exist precisely
+    to discuss interpretation -- a "Competing readings" section enumerating how
+    evidence could be read is doing its job, and flagging "could be read as"
+    there would push a report toward false confidence, which is the opposite of
+    what the check is for.
+    """
+    body = text
+    for title in config.get("exempt_sections", []):
+        section = section_text(body, title)
+        if section:
+            body = body.replace(section, " ")
+    if config.get("include_quoted"):
+        return body
+    return prose_only(body)
+
+
 # --- fact-integrity checks (blocking) -------------------------------------
 PERCEPTION = re.compile(
     r"\b("
@@ -124,7 +178,7 @@ PERCEPTION = re.compile(
 def forbid_perception_language(text, config):
     """G-002. The exact defect that shipped at evidence_fidelity 5/5:
     'To a new visitor, that looks like a copy-paste error...'"""
-    found = _hits(text, PERCEPTION)
+    found = _hits(_voice(text, config), PERCEPTION)
     if not found:
         return []
     return [
@@ -269,7 +323,7 @@ VAGUE_COUNT = re.compile(r"\b(?:several|many|a\s+few|numerous|multiple|lots\s+of
 def counts_are_numeric(text, config):
     """'Several recruiters said' is not a count. G-001: the evidence has a size."""
     body = section_text(text, config.get("section")) if config.get("section") else text
-    found = _hits(body, VAGUE_COUNT)
+    found = _hits(_voice(body, config), VAGUE_COUNT)
     if not found:
         return []
     return [
@@ -290,7 +344,10 @@ def verdict_in_vocabulary(text, config):
     # "strongly supported, act on it" contains "supported" and is exactly the
     # kind of smuggled confidence a controlled vocabulary exists to stop.
     # A trailing parenthetical is detail, not verdict: "mixed (9 of 13)" is fine.
-    bare = found.split("(")[0].split("\n")[0].strip().strip(".;:,").strip()
+    # Strip markdown emphasis: "**supported**" is the same verdict as "supported",
+    # and blocking on the asterisks would train writers to fight the formatter.
+    bare = found.split("(")[0].split("\n")[0].strip()
+    bare = re.sub(r"^[*_`]+|[*_`]+$", "", bare).strip().strip(".;:,").strip()
     if bare in allowed:
         return []
     return [
@@ -517,7 +574,7 @@ HYPE = re.compile(r"\b(?:unlock|supercharge|game[- ]?changer|secret\s+weapon|10x
 
 @check("forbid_hype", ADVISORY)
 def forbid_hype(text, config):
-    found = _hits(text, HYPE)
+    found = _hits(_voice(text, config), HYPE)
     if not found:
         return []
     return [Finding("forbid_hype", ADVISORY, "hype register (G-006)",
@@ -530,7 +587,7 @@ FLATTERY = re.compile(r"\b(?:impressive|amazing|incredible|rockstar|ninja|guru|"
 
 @check("forbid_flattery", ADVISORY)
 def forbid_flattery(text, config):
-    found = _hits(text, FLATTERY)
+    found = _hits(_voice(text, config), FLATTERY)
     if not found:
         return []
     return [Finding("forbid_flattery", ADVISORY, "flattery adjective",
@@ -606,7 +663,8 @@ def run(text, declared, context=None, base=None):
         name = entry.get("check")
         function = resolve_check(name, base)
         config = {k: v for k, v in entry.items() if k != "check"}
-        for key in ("sections", "phrases", "allowed", "sources", "absent_markers"):
+        for key in ("sections", "phrases", "allowed", "sources", "absent_markers",
+                    "exempt_sections"):
             if isinstance(config.get(key), str):
                 config[key] = [p.strip() for p in config[key].split("|") if p.strip()]
         if "context" in function.__code__.co_varnames[:function.__code__.co_argcount]:

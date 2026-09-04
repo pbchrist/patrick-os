@@ -32,11 +32,6 @@ inputs:
     required: false
     default: ""
     description: What the retrieval layer reported about what worked and what was blocked.
-  - name: retrieved_material
-    type: string
-    required: false
-    default: ""
-    description: Source bundle injected by Patrick OS retrieval, or pasted/exported source material for manual-export.
   - name: min_quotes
     type: integer
     required: false
@@ -52,6 +47,7 @@ output_checks:
     sections: Supports|Contradicts|Adjacent
   - check: counts_are_numeric
   - check: forbid_perception_language
+    exempt_sections: Competing readings|Competing Readings
   - check: forbid_hype
 ---
 
