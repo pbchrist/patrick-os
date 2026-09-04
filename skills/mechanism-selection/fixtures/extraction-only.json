@@ -1,0 +1,20 @@
+{
+  "name": "extraction-only",
+  "inputs": {
+    "diagnosis": "retrieval_failed: cloudflare-challenge. Nothing is known about this website.",
+    "current_tier": "note"
+  },
+  "expect": {
+    "must_contain": [
+      "does **not** choose the mechanism",
+      "Stop. Do not name a mechanism",
+      "conservative default",
+      "patrick select",
+      "[G-003]",
+      "[G-010]"
+    ],
+    "route_route": "mechanism-selection",
+    "route_provider": "anthropic-opus",
+    "route_denies": ["local-qwen"]
+  }
+}

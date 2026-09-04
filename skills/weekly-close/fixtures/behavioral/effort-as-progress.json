@@ -1,0 +1,7 @@
+{
+  "name": "effort-as-progress",
+  "provenance": "The named failure mode, and the reason the Nothing changed section is mandatory: a week of real work reported as movement, with a vague quantity standing in for a count, and a project with no next action called ongoing.",
+  "expect_verdict": "blocked",
+  "expect_defects": ["require_sections", "counts_are_numeric"],
+  "output": "Moved\n- Made significant headway on several fronts this week.\n- site-factory work is ongoing.\n\nInactive\n- None.\n\nUnvalidated\n- A few projects still need validation.\n\nResults this week\n- Good momentum overall.\n"
+}

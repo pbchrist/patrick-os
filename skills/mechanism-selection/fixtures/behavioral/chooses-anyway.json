@@ -1,0 +1,7 @@
+{
+  "name": "chooses-anyway",
+  "provenance": "The named failure mode: the extractor makes the decision itself. If the model picks the mechanism, it picks the one it knows how to execute -- which is exactly how 'find a bad website' became 'build a better website'.",
+  "expect_verdict": "blocked",
+  "expect_defects": ["forbid_intervention_proposal"],
+  "output": "## Profile\n{\"retrieval_ok\": true, \"identity_confidence\": \"high\", \"buyer_identified\": true, \"contradicted_claims\": 2, \"observations\": [{\"domain\": \"website\", \"severity\": \"high\"}]}\n\n## Field notes\n- contradicted_claims: two claims contradicted by the client list.\n\n## Uncertain\n- none.\n\nWe recommend they rebuild the homepage around the verified clients.\n"
+}

@@ -131,19 +131,49 @@ class CoverageTest(unittest.TestCase):
             for slug in report["by_stage"][stage]:
                 self.assertEqual(skills.load_skill(slug, REPO).stage, stage)
 
-    def test_the_result_and_learning_stages_are_still_unbuilt(self):
-        """Result intake is the missing half of learning: nothing captures what a
-        prospect actually did. Until it exists, strategy/ can only be written by
-        hand. When this test starts failing, docs/ARCHITECTURE.md needs updating."""
+    def test_a_stage_served_by_tooling_is_not_reported_as_a_gap(self):
+        """Recording what happened is data intake, not a model task -- a model
+        should never decide what an outcome was. Showing it as an empty stage
+        would be a false gap; showing a skill there would be a false claim."""
         registry = pipeline.load_mechanisms(REPO / "config" / "mechanisms.json")
         report = pipeline.coverage(skills.list_skills(REPO), registry)
         self.assertEqual(report["by_stage"]["result"], [])
+        self.assertIn("result", report["tooling"])
+        self.assertIn("result", report["covered"])
+        self.assertNotIn("result", report["empty"])
 
-    def test_coverage_reports_mechanisms_with_no_executor(self):
+    def test_every_stage_is_covered_by_a_skill_or_named_tooling(self):
         registry = pipeline.load_mechanisms(REPO / "config" / "mechanisms.json")
         report = pipeline.coverage(skills.list_skills(REPO), registry)
-        self.assertEqual(report["by_mechanism"]["positioning"], [])
-        self.assertTrue(report["by_mechanism"]["website"])
+        self.assertEqual(report["empty"], [],
+                         "a stage with neither a skill nor tooling is an untracked gap")
+
+    def test_coverage_reports_mechanisms_with_no_executor(self):
+        """Asserts the reporting works, not a snapshot of which mechanisms are
+        covered -- that changes every time a skill lands, and pinning it would
+        make unrelated work fail this test."""
+        registry = pipeline.load_mechanisms(REPO / "config" / "mechanisms.json")
+        report = pipeline.coverage(skills.list_skills(REPO), registry)
+        uncovered = [k for k in registry.keys() if not report["by_mechanism"].get(k)]
+        self.assertTrue(uncovered, "some mechanism should still lack a skill")
+        for key in uncovered:
+            for skill in skills.list_skills(REPO):
+                self.assertNotIn(key, skill.mechanisms)
+        for key, slugs in report["by_mechanism"].items():
+            for slug in slugs:
+                self.assertIn(key, skills.load_skill(slug, REPO).mechanisms)
+
+    def test_a_mechanism_with_an_executor_declares_it_and_vice_versa(self):
+        """The registry's executors list and the skills' mechanisms list are two
+        halves of one fact. They drifting apart is how positioning ended up
+        credited to a mechanism-agnostic skill."""
+        registry = pipeline.load_mechanisms(REPO / "config" / "mechanisms.json")
+        for key in registry.keys():
+            for slug in registry[key].executors:
+                if slug in {s.slug for s in skills.list_skills(REPO)}:
+                    self.assertIn(key, skills.load_skill(slug, REPO).mechanisms,
+                                  f"{slug} is listed as executor of {key} but does "
+                                  "not declare that mechanism")
 
 
 class StrategyLayerTest(TempRootTest):

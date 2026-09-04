@@ -1,0 +1,12 @@
+{
+  "name": "recommends-outside-the-mechanism",
+  "provenance": "Mechanism selection happening again, later, without the gate. The audit is scoped to positioning because selection chose positioning; a rebuild recommendation here re-decides that silently, which is the SF-03 pattern moved one stage downstream.",
+  "context": {
+    "diagnosis": "Claim 1 \"trusted by hundreds of teams\" is contradicted: the material enumerates 3 named clients."
+  },
+  "expect_verdict": "blocked",
+  "expect_defects": [
+    "forbid_other_mechanisms"
+  ],
+  "output": "The story being told\nThey present themselves as an established agency.\n\nWhat the evidence supports\nNothing in this section.\n\nWhat it does not\nClaim 1 is contradicted by their own client list.\n\nThe hidden problem\nThe material asserts scale it cannot evidence.\n\nRecommendations\n| # | Label | Recommendation |\n| 1 | eliminate | Stop claiming \"hundreds of teams\" |\n\nWe can rebuild the site around the three real clients and launch a new campaign.\n\nEvidence\n| # | Rests on |\n| 1 | the material enumerates 3 named clients |\n\nWhat this audit cannot tell you\n- Actual customer count.\n"
+}

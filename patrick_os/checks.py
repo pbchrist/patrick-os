@@ -383,8 +383,11 @@ def claims_have_sources(text, config):
 
 
 INTERVENTION = re.compile(
-    r"\b(?:we|i|our team|patrick)\s+(?:can|could|will|would|should|"
-    r"recommend\w*\s+(?:that\s+)?(?:we|you)?|propose|suggest)\s+"
+    # "We recommend they rebuild the homepage" was missed by an earlier version
+    # that required the subject after the verb to be "we" or "you". The filler
+    # between the modal and the action is now unconstrained.
+    r"\b(?:we|i|our team|patrick)\s+"
+    r"(?:can|could|will|would|should|recommend\w*|propose|suggest|advise)\b"
     r"[^.!?\n]{0,40}?"
     r"\b(?:build|rebuild|redesign|rewrite|implement|launch|create|develop|"
     r"fix|repair|migrate|automate|set\s+up|roll\s+out|deploy|deliver)\b"
@@ -521,6 +524,52 @@ def citations_resolve(text, config, context=None):
                 "citations_resolve", BLOCKING,
                 "cited evidence span does not appear in the source material",
                 evidence=[m[:100] for m in missing[:2]]))
+    return findings
+
+
+# Nouns that give away which mechanism an intervention belongs to. Keyed to
+# config/mechanisms.json so the two stay legible together.
+MECHANISM_MARKERS = {
+    "website": (r"site|website|homepage|landing\s+page|rebuild|redesign|"
+                r"web\s+presence|page\s+speed"),
+    "messaging": r"campaign|sequence|drip|outbound|cadence|newsletter|email\s+blast",
+    "pricing": r"pricing|price\s+point|packaging|rate\s+card|retainer",
+    "ops-automation": r"automat\w+|workflow|integration|pipeline|crm|zapier",
+    "positioning": (r"claim|positioning|message|story|proof|wording|copy|"
+                    r"headline|narrative"),
+}
+
+_ACTION = (r"(?:we|i|our team|patrick)\s+(?:can|could|will|would|should|recommend\w*|"
+           r"propose|suggest)\s+[^.!?\n]{0,60}?"
+           r"\b(?:build|rebuild|redesign|rewrite|implement|launch|create|develop|fix|"
+           r"repair|migrate|automate|set\s+up|roll\s+out|deploy|add|introduce)\b"
+           r"[^.!?\n]{0,60}?")
+
+
+@check("forbid_other_mechanisms", BLOCKING)
+def forbid_other_mechanisms(text, config):
+    """An artifact may only act inside the mechanism that was selected for it.
+
+    Not the same as ``forbid_intervention_proposal``, which forbids ALL remedies
+    and belongs to the diagnosis stage. By the artifact stage a mechanism has
+    been chosen, so recommending action is the job -- recommending action from a
+    DIFFERENT mechanism is mechanism selection happening a second time, later,
+    without the gate. That is SF-03's pattern moved one stage downstream.
+    """
+    allowed = {m.lower() for m in config.get("allow", [])}
+    findings = []
+    for mechanism, markers in MECHANISM_MARKERS.items():
+        if mechanism in allowed:
+            continue
+        pattern = re.compile(_ACTION + r"\b(?:" + markers + r")\b", re.IGNORECASE)
+        found = _hits(text, pattern)
+        if found:
+            findings.append(Finding(
+                "forbid_other_mechanisms", BLOCKING,
+                f"recommends a {mechanism!r} intervention; this artifact is scoped to "
+                + (", ".join(sorted(allowed)) or "no mechanism")
+                + " and re-selecting here bypasses the mechanism-selection gate",
+                evidence=[h.strip()[:90] for h in sorted(set(found))[:3]]))
     return findings
 
 

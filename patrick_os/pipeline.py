@@ -55,6 +55,16 @@ STAGE_PURPOSE = {
 }
 
 
+# Some stages are served by tooling rather than by a skill, because the work is
+# recording a fact rather than interpreting one. Showing them as empty would be
+# a false gap; showing them as covered by a skill would be a false claim.
+STAGE_TOOLING = {
+    "result": "patrick result record — recording what happened is data intake, "
+              "not a model task, and a model should never be the thing that "
+              "decides what an outcome was",
+}
+
+
 def stage_index(stage):
     try:
         return STAGES.index(stage)
@@ -167,6 +177,7 @@ def coverage(skill_list, mechanisms=None):
     behaving as though the two stages it has are the whole business.
     """
     by_stage = {stage: [] for stage in STAGES}
+    tooling = dict(STAGE_TOOLING)
     unstaged = []
     for skill in skill_list:
         stage = skill.meta.get("stage")
@@ -181,4 +192,7 @@ def coverage(skill_list, mechanisms=None):
         for skill in skill_list:
             for key in skill.meta.get("mechanisms") or []:
                 by_mechanism.setdefault(key, []).append(skill.slug)
-    return {"by_stage": by_stage, "unstaged": unstaged, "by_mechanism": by_mechanism}
+    covered = [s for s in STAGES if by_stage[s] or s in tooling]
+    return {"by_stage": by_stage, "unstaged": unstaged, "by_mechanism": by_mechanism,
+            "tooling": tooling, "covered": covered,
+            "empty": [s for s in STAGES if s not in covered]}

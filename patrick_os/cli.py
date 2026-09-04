@@ -19,7 +19,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import decisions, feedback, judging, pipeline, runner, skills, testing, voice
+from . import decisions, feedback, judging, pipeline, results, runner, selection, skills, testing, voice
 from .router import TaskSpec, resolve
 from .router import table as route_table
 
@@ -348,6 +348,45 @@ def cmd_decision(args):
     return 0
 
 
+def cmd_select(args):
+    """Choose a mechanism from an extracted profile. Deterministic; calls nothing."""
+    raw = json.loads(_read(args.profile)) if args.profile else json.loads(args.json_profile)
+    if isinstance(raw, dict) and "Profile" in raw:
+        raw = raw["Profile"]
+    profile = selection.Profile(**raw)
+    registry = pipeline.load_mechanisms(base=args.root)
+    result = selection.select(profile, registry)
+    if args.json:
+        print(json.dumps(result.as_dict(), indent=2))
+        return 0
+    print(selection.format_selection(result))
+    return 0
+
+
+def cmd_result(args):
+    if args.action == "record":
+        entry = results.record(
+            opportunity=args.opportunity, mechanism=args.mechanism, tier=args.tier,
+            outcome=args.outcome, evidence=args.evidence, amount=args.amount,
+            note=args.note, base=args.root)
+        print(f"recorded {entry['id']}: {entry['opportunity']} / {entry['mechanism']} "
+              f"/ {entry['tier']} -> {entry['outcome']}")
+        if entry.get("lesson_prompt"):
+            print("\n" + entry["lesson_prompt"])
+        return 0
+    rows = results.load_all(args.root)
+    if not rows:
+        print("no results recorded")
+        print("Nothing has been sent, so nothing has come back. strategy/ can only be")
+        print("written by hand until this has entries.")
+        return 0
+    if args.json:
+        print(json.dumps(rows, indent=2))
+        return 0
+    print(results.format_table(rows))
+    return 0
+
+
 def cmd_pipeline(args):
     """Show how much of the commercial pipeline actually has a skill behind it."""
     found = skills.list_skills(args.root)
@@ -361,15 +400,20 @@ def cmd_pipeline(args):
     print("        -> sales artifact -> outreach -> result -> learning")
     print()
     print("STAGE COVERAGE")
-    empty = 0
     for stage in pipeline.STAGES:
         owners = report["by_stage"][stage]
-        marker = "  " if owners else "· "
-        if not owners:
-            empty += 1
-        print(f"{marker}{stage:20} {', '.join(owners) if owners else '(no skill)'}")
+        tool = report["tooling"].get(stage)
+        if owners:
+            print(f"  {stage:20} {', '.join(owners)}")
+        elif tool:
+            print(f"  {stage:20} [tooling] {tool.split(' — ')[0]}")
+        else:
+            print(f"· {stage:20} (nothing)")
         if args.verbose:
             print(f"    {pipeline.STAGE_PURPOSE[stage]}")
+            if tool:
+                print(f"    why tooling: {tool.split(' — ', 1)[-1]}")
+    empty = len(report["empty"])
     print()
     print("MECHANISM COVERAGE")
     for key in registry.keys():
@@ -379,14 +423,19 @@ def cmd_pipeline(args):
               f"{', '.join(owners) if owners else '(no skill)'}")
     print()
     agnostic = [s.slug for s in found if s.mechanism_agnostic]
-    print(f"{len(pipeline.STAGES) - empty}/{len(pipeline.STAGES)} stages have a skill; "
-          f"{empty} do not.")
+    print(f"{len(report['covered'])}/{len(pipeline.STAGES)} stages covered "
+          f"({len(report['tooling'])} by tooling); {empty} not.")
     print(f"mechanism-agnostic skills: {', '.join(agnostic) or 'none'}")
     if report["unstaged"]:
         print(f"UNSTAGED (will fail validation): {', '.join(report['unstaged'])}")
     print()
-    print("The empty stages are the point. Patrick OS is not an opportunity engine")
-    print("yet and must not behave as though the stages it has are the business.")
+    if empty:
+        print("The empty stages are the point. Patrick OS must not behave as though")
+        print("the stages it has are the whole business.")
+    else:
+        print("Every stage is covered. That is not the same as every stage being good:")
+        print("`patrick result list` is empty, so no mechanism has a measured outcome")
+        print("behind it and strategy/ is still written by hand.")
     print("See docs/ARCHITECTURE.md and decisions/0006.")
     return 0
 
@@ -522,6 +571,24 @@ def build_parser():
     p.add_argument("--supersedes")
     p.set_defaults(func=cmd_decision)
 
+    p = sub.add_parser("select", help="choose a mechanism from a profile; calls nothing")
+    p.add_argument("--profile", help="file containing the profile JSON")
+    p.add_argument("--json-profile", help="the profile JSON inline")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_select)
+
+    p = sub.add_parser("result", help="record what actually happened, and read it back")
+    p.add_argument("action", choices=["record", "list"])
+    p.add_argument("--opportunity", help="what this result is about")
+    p.add_argument("--mechanism")
+    p.add_argument("--tier", default="note")
+    p.add_argument("--outcome", help=", ".join(results.OUTCOMES))
+    p.add_argument("--evidence", help="what establishes this outcome")
+    p.add_argument("--amount", help="money, if any changed hands")
+    p.add_argument("--note")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_result)
+
     p = sub.add_parser("pipeline", help="show stage and mechanism coverage")
     p.add_argument("--verbose", "-v", action="store_true")
     p.add_argument("--json", action="store_true")
@@ -546,6 +613,13 @@ def main(argv=None):
             parser.error("feedback correct requires --text")
         if args.action == "strategy" and not (args.text and args.evidence):
             parser.error("feedback strategy requires --text and --evidence")
+    if args.command == "select" and not (args.profile or args.json_profile):
+        parser.error("select requires --profile or --json-profile")
+    if args.command == "result" and args.action == "record":
+        missing = [f for f in ("opportunity", "mechanism", "outcome", "evidence")
+                   if not getattr(args, f)]
+        if missing:
+            parser.error("result record requires --" + ", --".join(missing))
         if args.action in {"show", "promote", "reject"} and not args.id:
             parser.error(f"feedback {args.action} requires an id")
     if args.command == "decision" and args.action == "add" and not args.title:
@@ -554,7 +628,8 @@ def main(argv=None):
         return args.func(args)
     except (skills.SkillError, voice.VoiceError, feedback.FeedbackError,
             decisions.DecisionError, route_table.RouteTableError, runner.RunError,
-            judging.JudgeError, pipeline.PipelineError) as error:
+            judging.JudgeError, pipeline.PipelineError, selection.SelectionError,
+            results.ResultError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
     except FileNotFoundError as error:

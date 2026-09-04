@@ -10,73 +10,195 @@
     "",
     "status: 'available'  an executor exists and has been run",
     "        'declared'   the mechanism is real but nothing here executes it yet",
-    "        'blocked'    an executor exists but is gated (see the project record)"
+    "        'blocked'    an executor exists but is gated (see the project record)",
+    "",
+    "preconditions are machine-readable [field, op, value] clauses evaluated by",
+    "patrick_os/selection.py against a structured profile extracted from a",
+    "diagnosis. The MODEL extracts the profile; the CODE decides. If the model",
+    "chose the mechanism it would choose the one it knows how to execute, which",
+    "is precisely the failure this stage exists to prevent."
   ],
-
   "mechanisms": {
     "website": {
       "label": "Web-based intervention",
       "description": "Rebuilds, landing pages, and fixes to a site's structure or copy.",
-      "executors": ["site-factory"],
+      "executors": [
+        "site-factory"
+      ],
       "evidence_required": [
         "the page was actually retrieved (fetch_status ok)",
         "identity verified to at least medium confidence",
         "an observable defect a person can point at"
       ],
-      "tiers": ["note", "audit", "pilot", "build"],
+      "tiers": [
+        "note",
+        "audit",
+        "pilot",
+        "build"
+      ],
       "status": "blocked",
-      "_note": "Site Factory is the EXECUTOR for this mechanism, not the decision engine that chooses it. Status blocked is about the GATES, not the code: 10 of 12 teardown findings were re-verified fixed on 2026-09-03, and the two still live were repaired on branch fix/site-factory-correctness. Gate 1 and Gate 2 remain NO-GO because SF-10 leaves the benchmark irreproducible, so no measured quality claim is available. See projects/site-factory.md."
+      "_note": "Site Factory is the EXECUTOR for this mechanism, not the decision engine that chooses it. Status blocked is about the GATES, not the code: 10 of 12 teardown findings were re-verified fixed on 2026-09-03, and the two still live were repaired on branch fix/site-factory-correctness. Gate 1 and Gate 2 remain NO-GO because SF-10 leaves the benchmark irreproducible, so no measured quality claim is available. See projects/site-factory.md.",
+      "preconditions": [
+        [
+          "retrieval_ok",
+          "eq",
+          true
+        ],
+        [
+          "identity_confidence",
+          "in",
+          [
+            "medium",
+            "high"
+          ]
+        ],
+        [
+          "observations",
+          "count-domain-gte",
+          [
+            "website",
+            1
+          ]
+        ],
+        [
+          "buyer_identified",
+          "eq",
+          true
+        ]
+      ],
+      "_preconditions_why": "SF-03 and SF-05 as preconditions rather than prose: no retrieved page means nothing is known about the site, and identity below medium means the defects may belong to a stranger. buyer_identified is SF-12."
     },
-
     "positioning": {
       "label": "Positioning and claim repair",
       "description": "Separating supported claims from aspirations and contradictions, and recommending what to preserve, eliminate, reposition, or test. The Narrative Decision Audit is this mechanism at the audit tier.",
-      "executors": [],
+      "executors": [
+        "narrative-decision-audit"
+      ],
       "evidence_required": [
         "the claims the business currently makes, quoted",
         "what the evidence actually supports",
         "the contradiction between them, named"
       ],
-      "tiers": ["note", "audit", "pilot"],
-      "status": "declared",
-      "_note": "Per Patrick's own positioning note this is the cash engine's repeatable offer, and it is not a website intervention. Still no executor, and the executors list stays empty on purpose: the analysis this offer is built on is produced by narrative-diagnosis, which is mechanism-AGNOSTIC by design -- a diagnosis that presumed positioning would be selecting the mechanism, which is the next stage's job. What positioning actually lacks is the sellable artifact at the audit tier, and that is a sales-artifact stage skill. The sales-artifact stage is empty."
+      "tiers": [
+        "note",
+        "audit",
+        "pilot"
+      ],
+      "status": "available",
+      "_note": "Per Patrick's own positioning note this is the cash engine's repeatable offer, and it is not a website intervention. narrative-decision-audit is its executor at the audit tier -- the sellable artifact. The DIAGNOSIS it rests on comes from narrative-diagnosis, which is deliberately mechanism-AGNOSTIC and therefore not listed here: a diagnosis that presumed positioning would be selecting the mechanism, which is the next stage's job.",
+      "preconditions": [
+        [
+          "contradicted_claims",
+          "gte",
+          1
+        ],
+        [
+          "buyer_identified",
+          "eq",
+          true
+        ]
+      ],
+      "_preconditions_why": "A positioning intervention needs an actual contradiction between what is claimed and what the evidence supports. Without one there is nothing to reposition, only opinions about tone."
     },
-
     "messaging": {
       "label": "Outbound messaging and sequence repair",
       "description": "The messages themselves: what is claimed, what is cited, what is asked for.",
       "executors": [],
-      "evidence_required": ["existing messages, verbatim", "a measured response rate"],
-      "tiers": ["note", "audit", "pilot"],
-      "status": "declared"
+      "evidence_required": [
+        "existing messages, verbatim",
+        "a measured response rate"
+      ],
+      "tiers": [
+        "note",
+        "audit",
+        "pilot"
+      ],
+      "status": "declared",
+      "preconditions": [
+        [
+          "observations",
+          "count-domain-gte",
+          [
+            "messaging",
+            1
+          ]
+        ],
+        [
+          "measured_result_available",
+          "eq",
+          true
+        ]
+      ],
+      "_preconditions_why": "Repairing messages requires a measured baseline. Rewriting outbound with no response-rate to compare against produces a different guess, not an improvement."
     },
-
     "pricing": {
       "label": "Pricing and packaging",
       "description": "What is charged, for what unit, at what commitment.",
       "executors": [],
-      "evidence_required": ["current prices", "what was actually paid, not quoted"],
-      "tiers": ["note", "audit"],
-      "status": "declared"
+      "evidence_required": [
+        "current prices",
+        "what was actually paid, not quoted"
+      ],
+      "tiers": [
+        "note",
+        "audit"
+      ],
+      "status": "declared",
+      "preconditions": [
+        [
+          "observations",
+          "count-domain-gte",
+          [
+            "pricing",
+            1
+          ]
+        ],
+        [
+          "buyer_identified",
+          "eq",
+          true
+        ]
+      ],
+      "_preconditions_why": "Requires an observed pricing problem and someone with the authority to change a price."
     },
-
     "ops-automation": {
       "label": "Operational automation",
       "description": "Removing a repeated manual step. Patrick OS is itself an instance of this mechanism.",
       "executors": [],
-      "evidence_required": ["the repeated step, observed more than once", "its cost in time"],
-      "tiers": ["note", "pilot", "build"],
-      "status": "declared"
+      "evidence_required": [
+        "the repeated step, observed more than once",
+        "its cost in time"
+      ],
+      "tiers": [
+        "note",
+        "pilot",
+        "build"
+      ],
+      "status": "declared",
+      "preconditions": [
+        [
+          "observations",
+          "count-domain-gte",
+          [
+            "operations",
+            2
+          ]
+        ]
+      ],
+      "_preconditions_why": "Two observations in the same domain, because one repeated step observed once is an anecdote. Patrick OS is itself an instance of this mechanism."
     },
-
     "none": {
       "label": "No intervention supported",
       "description": "The diagnosis does not support selling anything yet. A first-class outcome, not a failure to decide.",
       "executors": [],
       "evidence_required": [],
-      "tiers": ["note"],
+      "tiers": [
+        "note"
+      ],
       "status": "available",
-      "_note": "Mechanism selection must be able to conclude this, or it is not selection. Site Factory had no way to express it: SF-03 turned a crawler timeout into a qualified rebuild opportunity at score 90."
+      "_note": "Mechanism selection must be able to conclude this, or it is not selection. Site Factory had no way to express it: SF-03 turned a crawler timeout into a qualified rebuild opportunity at score 90.",
+      "preconditions": [],
+      "_preconditions_why": "No preconditions. Always available, always last."
     }
   }
 }

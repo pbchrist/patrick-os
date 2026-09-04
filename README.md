@@ -25,8 +25,9 @@ signals -> qualification -> diagnosis -> mechanism selection
 decision engine.** Mechanism selection sits above it and can conclude that a
 non-web intervention, or no intervention, is what the evidence supports.
 
-`patrick pipeline` prints how much of that actually exists (currently 3 of 8
-stages). Full detail, including the interfaces future stages will need, is in
+`patrick pipeline` prints how much of that actually exists (8 of 8 stages, one
+served by tooling — though a covered stage is not a good stage: no mechanism has
+a measured result behind it yet). Full detail, including the interfaces future stages will need, is in
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and `decisions/0006`. The
 Opportunity Engine is deliberately **not** built yet.
 
@@ -58,8 +59,10 @@ No install. No virtualenv. No dependencies. Python 3.9 or newer.
 ./patrick run reddit-mine --input subreddit=recruiting --input pain_hypothesis='...'
 ./patrick judge site-factory-email --output draft.md   # deterministic checks
 ./patrick pipeline            # stage and mechanism coverage
+./patrick select --profile p.json      # choose a mechanism; deterministic
+./patrick result record --outcome no_reply --evidence '...'  # what happened
 ./patrick voice --strategy    # rules about what is worth pursuing
-./patrick test                # 185 checks
+./patrick test                # 248 checks
 ```
 
 `patrick run` is a dry run: it composes the work order and resolves the route,

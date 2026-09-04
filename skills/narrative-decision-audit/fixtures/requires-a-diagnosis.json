@@ -1,0 +1,6 @@
+{
+  "name": "requires-a-diagnosis",
+  "_note": "This stage repackages; it does not discover. Running it on raw material would collapse two stages and lose the evidence trail.",
+  "inputs": { "subject": "A business" },
+  "expect": { "invalid_inputs": true }
+}

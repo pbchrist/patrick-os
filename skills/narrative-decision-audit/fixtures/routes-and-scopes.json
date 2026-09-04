@@ -1,0 +1,25 @@
+{
+  "name": "routes-and-scopes",
+  "inputs": {
+    "subject": "narrative-sourcing",
+    "diagnosis": "Claims\n| 1 | \"the loop is broken\" | unsupported | none in material |\n\nHidden problem\n1 unsupported, 0 supported.",
+    "buyer_role": "the founder",
+    "price": "$500"
+  },
+  "expect": {
+    "must_contain": [
+      "preserve",
+      "eliminate",
+      "reposition",
+      "test",
+      "What this audit cannot tell you",
+      "Mechanism selection already ran",
+      "$500",
+      "[G-001]",
+      "[G-007]"
+    ],
+    "route_route": "draft",
+    "route_provider": "anthropic-opus",
+    "route_denies": ["local-qwen"]
+  }
+}

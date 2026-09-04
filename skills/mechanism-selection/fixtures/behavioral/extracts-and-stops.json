@@ -1,0 +1,7 @@
+{
+  "name": "extracts-and-stops",
+  "provenance": "The positive control: a complete profile, every non-default value cited, conservative defaults recorded as uncertain, and no mechanism named anywhere.",
+  "expect_verdict": "clean",
+  "expect_defects": [],
+  "output": "## Profile\n{\"retrieval_ok\": false, \"identity_confidence\": \"none\", \"buyer_identified\": false, \"supported_claims\": 0, \"unsupported_claims\": 0, \"contradicted_claims\": 0, \"observations\": [], \"measured_result_available\": false, \"current_tier\": \"note\", \"regulated_claims\": false}\n\n## Field notes\n- retrieval_ok: \"retrieval_failed: cloudflare-challenge\" appears in the diagnosis; nothing was retrieved.\n\n## Uncertain\n- identity_confidence: nothing was retrieved, so identity could not be assessed; used the conservative default none.\n- All claim counts: no claims could be read from the material.\n"
+}

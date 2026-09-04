@@ -1,0 +1,7 @@
+{
+  "name": "honest-close",
+  "provenance": "The positive control: zero movement stated as zero, the vocabulary used exactly, and the Nothing changed section carrying the projects that saw work without change.",
+  "expect_verdict": "clean",
+  "expect_defects": [],
+  "output": "Moved\n- 0 projects moved this week.\n\nInactive\n- site-factory: inactive. The record names no next irreversible action beyond \"clear Gate 1\", which was also last week's.\n\nUnvalidated\n- narrative-sourcing: unvalidated. 0 adoption records and 0 payment records appear in the material.\n- site-factory: unvalidated. 0 buyers identified across 5 benchmark businesses.\n\nResults this week\n- no results recorded this week. Nothing was sent, so nothing came back.\n\nLessons proposed\n- None. 0 results and 1 correction is not a pattern.\n\nNothing changed\n- narrative-sourcing: the ablation was published before this week; the next irreversible action is unchanged from last week.\n"
+}

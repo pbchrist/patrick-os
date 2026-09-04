@@ -28,8 +28,15 @@ Fixture shape (``skills/<slug>/fixtures/<name>.json``)::
 
 from __future__ import annotations
 
+import re
 import unittest
 from io import StringIO
+
+_WHITESPACE = re.compile(r"\s+")
+
+
+def _flat(text):
+    return _WHITESPACE.sub(" ", text).strip().lower()
 
 from . import runner, skills
 from .router import table as route_table
@@ -54,12 +61,15 @@ def check_fixture(skill, fixture, table, base=None):
         return [f"input binding failed: {error}"]
 
     work_order = planned["work_order"]
-    lowered = work_order.lower()
+    # Whitespace-insensitive: a skill's prose is hard-wrapped, so a phrase that
+    # spans a line break is present but would not match a literal search. Fixtures
+    # should assert on content, not on where the author happened to wrap.
+    lowered = _flat(work_order)
     for needle in expect.get("must_contain", []):
-        if needle.lower() not in lowered:
+        if _flat(needle) not in lowered:
             failures.append(f"work order is missing required text {needle!r}")
     for needle in expect.get("must_not_contain", []):
-        if needle.lower() in lowered:
+        if _flat(needle) in lowered:
             failures.append(f"work order contains forbidden text {needle!r}")
 
     decision = planned["decision"]

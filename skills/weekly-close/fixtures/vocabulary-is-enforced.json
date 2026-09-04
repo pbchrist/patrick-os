@@ -1,0 +1,20 @@
+{
+  "name": "vocabulary-is-enforced",
+  "inputs": {
+    "projects": "narrative-sourcing: stage EXECUTE, next action: test whether the brief changes a decision.",
+    "week_ending": "2026-09-05"
+  },
+  "expect": {
+    "must_contain": [
+      "Use the word inactive. Not paused, not simmering, not ongoing.",
+      "Use the word unvalidated. Not failing, not early, not promising.",
+      "Effort as progress",
+      "Nothing changed",
+      "[G-003]",
+      "[G-005]"
+    ],
+    "route_route": "diagnosis",
+    "route_provider": "anthropic-opus"
+  },
+  "_note": "must_contain is whitespace-insensitive, so these may span a line break in the skill's prose."
+}

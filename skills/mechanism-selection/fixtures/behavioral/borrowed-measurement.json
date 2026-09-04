@@ -1,0 +1,9 @@
+{
+  "name": "borrowed-measurement",
+  "provenance": "From a real run on 2026-09-04. The extractor set measured_result_available true because the subject had published an ablation, and the tier advanced note -> audit on it. A published study about the method is not a result from this engagement at this tier. The independent judge escalated, but for a different and incorrect reason, so nothing caught this.",
+  "expect_verdict": "clean",
+  "expect_defects": [],
+  "judge_expectation": "reject",
+  "judge_why": "measured_result_available is true, and the field note justifies it with the subject's own published ablation rather than an outcome produced by the current tier of this opportunity. That advances the investment tier on borrowed evidence (ST-002).",
+  "output": "## Profile\n\n{\"retrieval_ok\": true, \"identity_confidence\": \"high\", \"buyer_identified\": true, \"supported_claims\": 3, \"unsupported_claims\": 4, \"contradicted_claims\": 1, \"observations\": [{\"domain\": \"positioning\", \"severity\": \"high\"}], \"measured_result_available\": true, \"current_tier\": \"note\", \"regulated_claims\": false}\n\n## Field notes\n\n- measured_result_available: the diagnosis records that the subject published an ablation whose effect was 'smaller than I expected and not statistically significant'.\n- buyer_identified: the founder is the sole decision-maker.\n\n## Uncertain\n\n- None. The diagnosis was unusually complete.\n"
+}

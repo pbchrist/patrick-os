@@ -1,0 +1,8 @@
+{
+  "name": "defensible-audit",
+  "provenance": "The positive control: something preserved as well as eliminated, a named test rather than a verb, every recommendation resting on a line of the diagnosis, and an honest limits section.",
+  "context": { "diagnosis": "Claim 1 \"trusted by hundreds of teams\" is contradicted: the material enumerates 3 named clients. Claim 2 \"the ablation effect is smaller than I expected and not statistically significant\" is supported by the published evidence page." },
+  "expect_verdict": "clean",
+  "expect_defects": [],
+  "output": "The story being told\nThey present as an established agency with broad adoption and a measured method.\n\nWhat the evidence supports\nThe published ablation, including its null result, is supported by the evidence page.\n\nWhat it does not\nThe adoption claim is contradicted by their own enumeration of clients.\n\nThe hidden problem\nThe material asserts adoption it cannot evidence while under-stating the one thing it can.\n\nRecommendations\n| # | Label | Recommendation |\n| 1 | preserve | Keep the published ablation, including the null result |\n| 2 | eliminate | Stop claiming \"hundreds of teams\" |\n| 3 | test | Whether the brief changes a decision: give five recruiters the same candidate with and without one |\n\nEvidence\n| # | Rests on |\n| 1 | the ablation effect is smaller than I expected and not statistically significant |\n| 2 | the material enumerates 3 named clients |\n\nWhat this audit cannot tell you\n- Whether anyone currently uses the tool. No adoption record appears in the material.\n- Whether the method generalises beyond the single ablation.\n"
+}

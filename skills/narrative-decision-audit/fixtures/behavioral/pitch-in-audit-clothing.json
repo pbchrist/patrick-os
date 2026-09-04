@@ -1,0 +1,8 @@
+{
+  "name": "pitch-in-audit-clothing",
+  "provenance": "The named failure mode: findings shaped so the next engagement is obvious, with the limits section removed. An audit with no stated limits is a pitch, and the missing section is the tell.",
+  "context": { "diagnosis": "Claim 1 \"trusted by hundreds of teams\" is contradicted: the material enumerates 3 named clients." },
+  "expect_verdict": "blocked",
+  "expect_defects": ["require_sections"],
+  "output": "The story being told\nAn established agency.\n\nWhat the evidence supports\nNothing verifiable.\n\nWhat it does not\nEvery claim made.\n\nRecommendations\n| # | Label | Recommendation |\n| 1 | eliminate | Stop claiming \"hundreds of teams\" |\n\nEvidence\n| # | Rests on |\n| 1 | the material enumerates 3 named clients |\n"
+}

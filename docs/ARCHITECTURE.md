@@ -45,20 +45,61 @@ different mechanisms. The axes move independently.
 
 ## Stages
 
-| Stage | Produces | Has a skill? |
+| Stage | Produces | Covered by |
 |---|---|---|
 | `signal` | Dated, sourced evidence. No claim. | `reddit-mine` |
 | `qualification` | pursue / watch / suppress, and *who would buy* | `site-factory-prospect` |
-| `diagnosis` | What is actually wrong beneath the presented story | **none** |
-| `mechanism-selection` | Which intervention the diagnosis implies, or `none` | **none** |
-| `sales-artifact` | The thing a buyer sees: audit, one-pager, demo | **none** |
+| `diagnosis` | What is actually wrong beneath the presented story | `narrative-diagnosis` |
+| `mechanism-selection` | Which intervention the diagnosis implies, or `none` | `mechanism-selection` + `patrick select` |
+| `sales-artifact` | The thing a buyer sees: audit, one-pager, demo | `narrative-decision-audit` |
 | `outreach` | Getting it in front of the decider | `linkedin-reply`, `recruiter-outreach`, `site-factory-email` |
-| `result` | What happened. Recorded whether or not it flatters. | **none** |
-| `learning` | What the result changes | partially — the feedback compiler |
+| `result` | What happened. Recorded whether or not it flatters. | `patrick result record` — tooling, not a skill |
+| `learning` | What the result changes | `weekly-close` + the feedback compiler |
 
-`patrick pipeline` prints this live. Three of eight stages are covered, and the
-three missing ones in the middle are exactly the decision layer whose absence let
-the executor make the decision.
+`patrick pipeline` prints this live.
+
+`result` is served by tooling rather than a skill on purpose: recording what
+happened is data intake, and a model should never be the thing that decides what
+an outcome was. Showing it as an empty stage would be a false gap; putting a
+skill there would be a false claim.
+
+**Every stage being covered is not the same as every stage being good.**
+`patrick result list` is empty — nothing has been sent, so nothing has come back —
+which means no mechanism has a measured outcome behind it and `strategy/` is
+still written by hand.
+
+## Mechanism selection: the model extracts, the code decides
+
+The stage whose absence let the executor make the decision, and the one place
+where the split matters most.
+
+`mechanism-selection` (the skill) reads a diagnosis and emits a structured
+profile: `retrieval_ok`, `identity_confidence`, `buyer_identified`, claim counts,
+observations by domain, `measured_result_available`. It is explicitly forbidden
+from naming a mechanism.
+
+`patrick_os/selection.py` then decides, as a pure function over the
+`preconditions` table in `config/mechanisms.json` — no model, no network, no
+keys, fully regression-tested. Same shape as `router.resolve`, for the same
+reason: a decision you can only observe by running a model is a decision you
+cannot pin.
+
+The reason for the split is not tidiness. **A model asked to choose an
+intervention will choose one it knows how to execute.** That is how "find a bad
+website" became "build a better website", and how a Cloudflare challenge became a
+qualified rebuild at score 90. Preconditions encode SF-03 and SF-05 as data:
+`website` requires `retrieval_ok` and `identity_confidence in [medium, high]`.
+
+Three outcomes, kept separate because they mean different things:
+
+- **eligible** — the evidence supports it and something here can execute it.
+- **capability gap** — the evidence supports it and *nothing here can do it*.
+  A strategic finding, not a rejection. Folding it into "rejected" would bury
+  the most useful thing selection produces.
+- **rejected** — the evidence does not support it, with the failing clause named.
+
+`none` is always eligible and always last. A selector that cannot conclude "no
+intervention is warranted" is not selecting; it is justifying the tool it has.
 
 ## Mechanisms
 
@@ -153,11 +194,11 @@ Built — the minimum that lets the rest arrive later without a rewrite:
 
 Deliberately not built:
 
-- opportunity discovery and ingestion
-- the qualification engine, diagnosis engine, and mechanism selector
-- tier-advancement gating (the rule exists; nothing enforces it)
-- any non-website executor
+- opportunity discovery and ingestion — nothing finds prospects
+- the opportunity record: stages are run by hand, output piped to input
 - cross-stage orchestration — nothing chains stage outputs to stage inputs
+- any executor for `messaging`, `pricing`, or `ops-automation`
+- bulk corpus intake for `voice/`
 
 ## Interfaces that will need to exist
 
@@ -174,15 +215,18 @@ a stage-2 fragment of this, not the thing itself.
 stage can only read the output of a stage at or before it. `pipeline.stage_index`
 exists for that check; nothing calls it yet.
 
-**Mechanism selector** — `(diagnosis, mechanism registry, strategy rules) ->
-ranked mechanisms with reasons`. It should be a pure function over a declarative
-table, exactly like `router.resolve`, and testable with no model. The router is
-the working precedent to copy.
+**Mechanism selector** — built. `patrick_os/selection.py`, pure, table-driven.
 
-**Result intake** — the missing half of learning. `feedback add` captures what
-Patrick changed about an *output*; nothing captures what a *prospect did*. Until
-result intake exists, `strategy/` can only be written by hand, which is why it
-is nearly empty and honestly so.
+**Result intake** — built. `patrick result record` requires evidence and treats
+`no_reply` as a first-class outcome, because a results log that only records wins
+measures enthusiasm. After three matching results it *prompts* for a strategy
+rule and writes none — same discipline as the feedback compiler.
+
+**Tier advancement** — `note → audit → pilot → build`, advanced by
+`measured_result_available` in the selector. A real run set that field true on
+the strength of the subject's own published ablation, which advanced the tier on
+a measurement that had nothing to do with the engagement. The field now specifies
+"from the current tier of *this* opportunity", and the case is a fixture.
 
 ## What did not change
 
