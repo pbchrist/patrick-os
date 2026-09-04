@@ -42,6 +42,23 @@
       "_note": "Reuses Hermes' existing credential pool; no API key is copied into Patrick OS. Verified working on this machine 2026-09-03 with gpt-4.1 and gpt-4o. Site Factory's .env points at SITE_FACTORY_JUDGE_PROVIDER=openai-codex, for which `hermes auth` shows NO stored credential here, so that judge path is currently dead. isolate:true adds --ignore-rules --ignore-user-config so a work order does not inherit Hermes' own AGENTS.md, SOUL.md, memory, or preloaded skills."
     },
 
+    "hermes-copilot-4o": {
+      "adapter": "hermes_cli",
+      "model": "gpt-4o",
+      "command": "hermes",
+      "hermes_provider": "copilot",
+      "isolate": true,
+      "max_turns": 4,
+      "extra_args": [],
+      "local": false,
+      "capabilities": ["text", "json", "judge"],
+      "supports_tools": true,
+      "quality": 3,
+      "cost_per_1k": 0.0,
+      "latency_class": "slow",
+      "_note": "A second model on the same Hermes credential, verified working 2026-09-03. Exists so judging is possible at all on a one-provider machine: with only hermes-copilot declared, choose_judge() had nothing independent to fall back to and refused. Same-vendor, same-credential independence is WEAKER than cross-vendor -- it separates the model but not the provider's system prompt or safety stack. It clears the bar Site Factory's own llm_client enforces (judge model must differ from writer model) and no more. Re-authenticating hermes-nous, or setting ANTHROPIC_API_KEY, is the real upgrade."
+    },
+
     "hermes-nous": {
       "adapter": "hermes_cli",
       "model": "Hermes-4-405B",
@@ -108,11 +125,11 @@
     },
     {
       "task_class": "judge",
-      "prefer": ["hermes-copilot", "anthropic-opus"],
+      "prefer": ["hermes-copilot", "anthropic-opus", "hermes-copilot-4o"],
       "deny": ["local-qwen"],
       "min_quality": 3,
       "needs_capabilities": ["judge"],
-      "_why": "Site Factory's hardest-won lesson (SF-07): a judge that shares a model or an answer key with the writer measures nothing. The judge must be a different provider from the writer, by construction."
+      "_why": "Site Factory's hardest-won lesson (SF-07): a judge that shares a model or an answer key with the writer measures nothing. The judge must differ from the writer, by construction. Order is by strength of independence, not convenience: a different vendor (anthropic-opus) separates model, system prompt and safety stack; a second model on the same credential (hermes-copilot-4o) separates only the model, and is the last resort that keeps judging possible at all on a one-provider machine."
     },
     {
       "task_class": "classify",

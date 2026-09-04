@@ -36,6 +36,7 @@ output_checks:
     label: Verdict
     allowed: supported|contradicted|mixed|insufficient evidence
   - check: quotes_are_sourced
+    sections: Supports|Contradicts|Adjacent
   - check: counts_are_numeric
   - check: forbid_perception_language
   - check: forbid_hype

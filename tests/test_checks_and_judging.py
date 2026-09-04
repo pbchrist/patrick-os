@@ -62,6 +62,23 @@ class FactIntegrityTest(unittest.TestCase):
                    'https://reddit.com/r/recruiting/comments/aaa\n')
         self.assertEqual(self.fire("quotes_are_sourced", sourced), [])
 
+    def test_a_prepositional_phrase_is_not_perception_language(self):
+        """False positive from a real recruiter-outreach run: "facts unique to
+        the candidate:" tripped the check. Naming a person is not ascribing a
+        perception to them; the construction needs the verb."""
+        for benign in ("Identified specific, quotable facts unique to the candidate:",
+                       "I sent the brief to the customer yesterday.",
+                       "This role would be relevant to a prospect in platform work."):
+            self.assertEqual(self.fire("forbid_perception_language", benign), [],
+                             f"false positive on: {benign}")
+
+    def test_the_to_a_visitor_construction_is_still_caught(self):
+        for bad in ("To a new visitor, that looks like a copy-paste error.",
+                    "To the customer this appears broken.",
+                    "To a reader it seems unfinished."):
+            self.assertTrue(self.fire("forbid_perception_language", bad),
+                            f"missed: {bad}")
+
     def test_a_named_phrase_is_not_treated_as_a_mined_quote(self):
         """False positive from a real run: a retrieval-failure line naming the
         anti-bot challenge \"Prove your humanity\" was flagged as an unsourced
@@ -74,6 +91,21 @@ class FactIntegrityTest(unittest.TestCase):
         text = ('Supports\n- "I can spot the ChatGPT cadence in two seconds and I '
                 'archive it immediately"\n')
         self.assertTrue(self.fire("quotes_are_sourced", text))
+
+    def test_sourcing_applies_only_to_the_evidence_sections(self):
+        """False positive from a real run: the Hypothesis section restates the
+        hypothesis in quotes, and the check demanded a permalink for it. Only
+        mined evidence needs a source."""
+        text = ('# Hypothesis\n\n"Recruiters can tell AI-written outreach."\n\n'
+                '# Supports\n\nRetrieval failure: no threads were read.\n')
+        config = {"sections": ["Supports", "Contradicts", "Adjacent"]}
+        self.assertEqual(self.fire("quotes_are_sourced", text, config), [])
+
+    def test_an_unsourced_quote_inside_supports_is_still_caught_when_scoped(self):
+        text = ('# Hypothesis\n\n"A hypothesis."\n\n'
+                '# Supports\n- "I can spot the ChatGPT cadence in two seconds and archive it"\n')
+        config = {"sections": ["Supports", "Contradicts", "Adjacent"]}
+        self.assertTrue(self.fire("quotes_are_sourced", text, config))
 
     def test_email_address_is_caught(self):
         self.assertTrue(self.fire("forbid_email_address", "reach me at a@b.co"))

@@ -106,8 +106,14 @@ PERCEPTION = re.compile(
     r"(?:customers?|visitors?|readers?|prospects?|candidates?|people)\s+"
     r"(?:will|would|may|might)\s+\w+|"
     r"gives?\s+the\s+impression|creates?\s+the\s+impression|"
+    # "To a new visitor, that looks like a copy-paste error" -- the construction
+    # must actually ascribe a perception. Requiring the verb is what separates it
+    # from "facts unique to the candidate:", a plain prepositional phrase that
+    # this pattern flagged on a real run.
     r"to\s+(?:a|the|any)\s+(?:new\s+|potential\s+|prospective\s+)?"
-    r"(?:visitor|customer|reader|prospect|candidate|user)s?\b|"
+    r"(?:visitor|customer|reader|prospect|candidate|user)s?\b[^.!?\n]{0,40}?"
+    r"\b(?:looks?|seems?|appears?|reads?|feels?|comes?\s+across|"
+    r"will\s+\w+|would\s+\w+|is\s+likely)\b|"
     r"you(?:'re|\sare)\s+probably\s+(?:ready|looking|open)"
     r")\b",
     re.IGNORECASE,

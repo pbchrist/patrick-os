@@ -110,18 +110,31 @@ def build_prompt(skill, output, deterministic_result):
     return "\n".join(lines)
 
 
-def choose_judge(writer_provider_key, base=None, table=None):
-    """Resolve a judge provider that is not the writer. Refuses rather than reuse."""
+def independent_candidates(writer_provider_key, base=None, table=None):
+    """Every eligible judge that is not the writer, strongest independence first.
+
+    Returns a list rather than one provider because the router ranks by how
+    independent a judge is, not by whether it happens to be reachable. A
+    different vendor is the better judge and is preferred; if it has no
+    credentials on this machine, falling through to a weaker-but-reachable judge
+    beats not judging at all. What is never traded away is the writer itself.
+    """
     table = table or route_table.load(base=base)
     decision = resolve(TaskSpec("judge", needs_capabilities=["judge"]), table)
-    for candidate in decision.candidates:
-        if candidate.key != writer_provider_key:
-            return candidate.provider, decision
-    raise IndependenceError(
-        "no judge provider is available that differs from the writer "
-        f"({writer_provider_key!r}). A judge sharing a model with the writer "
-        "measures similarity, not quality (Site Factory SF-07). Refusing to judge."
-    )
+    candidates = [c.provider for c in decision.candidates if c.key != writer_provider_key]
+    if not candidates:
+        raise IndependenceError(
+            "no judge provider is available that differs from the writer "
+            f"({writer_provider_key!r}). A judge sharing a model with the writer "
+            "measures similarity, not quality (Site Factory SF-07). Refusing to judge."
+        )
+    return candidates, decision
+
+
+def choose_judge(writer_provider_key, base=None, table=None):
+    """The strongest independent judge. Refuses rather than reuse the writer."""
+    candidates, decision = independent_candidates(writer_provider_key, base, table)
+    return candidates[0], decision
 
 
 def judge(skill, output, *, writer_provider=None, base=None, table=None,
@@ -136,17 +149,37 @@ def judge(skill, output, *, writer_provider=None, base=None, table=None,
         )
         return result
 
-    provider, decision = choose_judge(writer_provider, base=base, table=table)
+    candidates, decision = independent_candidates(writer_provider, base, table)
     prompt = build_prompt(skill, output, result["deterministic"])
-    result["judge_provider"] = provider.key
     result["writer_provider"] = writer_provider
     result["judge_route"] = decision.route_name
-    if transport is not None:
-        raw = transport(prompt, provider=provider)
-    else:
-        from .router import adapters
 
-        raw = adapters.complete(provider, prompt)
+    from .runner import TRANSPORT_FAILURES
+
+    attempts = []
+    raw = None
+    provider = None
+    for provider in candidates:
+        try:
+            if transport is not None:
+                raw = transport(prompt, provider=provider)
+            else:
+                from .router import adapters
+
+                raw = adapters.complete(provider, prompt)
+            attempts.append({"provider": provider.key, "ok": True})
+            break
+        except TRANSPORT_FAILURES as error:
+            attempts.append({"provider": provider.key, "ok": False,
+                             "error": f"{type(error).__name__}: {error}"})
+            raw = None
+    result["judge_attempts"] = attempts
+    if raw is None:
+        raise JudgeError(
+            "every independent judge failed:\n  "
+            + "\n  ".join(f"{a['provider']}: {a['error']}" for a in attempts)
+        )
+    result["judge_provider"] = provider.key
     result["model_judge"] = _parse_json(raw)
     result["model_judge_raw"] = raw
     return result
