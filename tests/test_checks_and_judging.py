@@ -218,3 +218,138 @@ class BehavioralFixtureTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CitationResolutionTest(unittest.TestCase):
+    """The defect that passed both layers on a real run.
+
+    A diagnosis cited 'README states [...] No scraping, no batch mode, no
+    auto-send' as an evidence span. That text appeared nowhere in the supplied
+    material. The deterministic checks passed it and the independent model judge
+    passed it. A claim table whose citations cannot be checked is decoration --
+    worse than no citations, because it produces the feeling of rigour that makes
+    an unsupported reading persuasive.
+    """
+
+    SOURCE = {"evidence_material": (
+        "Repository evidence, checked 2026-09-04:\n"
+        "- Live app URL published at pbchrist.github.io/narrative-sourcing\n"
+        "- No user count, no adoption record, and no payment record appears anywhere"
+    )}
+
+    def table(self, span):
+        return ("## Claims\n\n| # | Claim | Class | Evidence Span |\n|---|---|---|---|\n"
+                f"| 1 | \"a claim\" | supported | {span} |\n")
+
+    def fire(self, text, context, config=None):
+        return checks.run(text, [dict({"check": "citations_resolve",
+                                       "section": "Claims",
+                                       "sources": ["evidence_material"]},
+                                      **(config or {}))], context)
+
+    def test_the_fabricated_span_from_the_real_run_is_caught(self):
+        found = self.fire(
+            self.table("README states [...] No scraping, no batch mode, no auto-send"),
+            self.SOURCE)
+        self.assertTrue(found)
+        self.assertEqual(found[0].severity, checks.BLOCKING)
+
+    def test_a_span_present_in_the_source_resolves(self):
+        found = self.fire(
+            self.table("Live app URL published at pbchrist.github.io/narrative-sourcing"),
+            self.SOURCE)
+        self.assertEqual(found, [])
+
+    def test_absence_markers_are_not_citations(self):
+        for marker in ("none in material", "none", "n/a", "-"):
+            self.assertEqual(self.fire(self.table(marker), self.SOURCE), [],
+                             f"{marker!r} should not be treated as a citation")
+
+    def test_an_ellipsis_quote_resolves_fragment_by_fragment(self):
+        """Partial quotes are legitimate; each surviving fragment must still be
+        real, so an invented middle cannot hide behind a real beginning."""
+        self.assertEqual(
+            self.fire(self.table("Live app URL published [...] no payment record appears anywhere"),
+                      self.SOURCE), [])
+        self.assertTrue(
+            self.fire(self.table("Live app URL published [...] audited by a third party"),
+                      self.SOURCE))
+
+    def test_missing_source_material_blocks_rather_than_passes(self):
+        """With no source, nothing can be resolved. Passing would mean the check
+        silently disables itself exactly when it is skipped."""
+        found = self.fire(self.table("Live app URL published at pbchrist.github.io"), {})
+        self.assertTrue(found)
+        self.assertIn("no source material", found[0].message)
+
+    def test_whitespace_and_smart_quotes_do_not_defeat_resolution(self):
+        source = {"evidence_material": 'The report says “three named clients” only.'}
+        self.assertEqual(self.fire(self.table('"three   named clients"'), source), [])
+
+    def test_context_reaches_checks_through_the_judge(self):
+        skill = skills.load_skill("narrative-diagnosis", REPO)
+        bad = self.table("README states [...] No scraping, no batch mode, no auto-send")
+        blocked = judging.judge(skill, bad, base=REPO, context=self.SOURCE)
+        self.assertEqual(blocked["deterministic"]["verdict"], "blocked")
+        self.assertEqual(blocked["context_inputs"], ["evidence_material"])
+
+    def test_the_judge_prompt_carries_the_source_material(self):
+        """The model judge missed this. Giving it the source is the other half of
+        the fix -- the regex resolves exact spans, the judge can see a citation
+        that resolves but does not support the claim."""
+        skill = skills.load_skill("narrative-diagnosis", REPO)
+        prompt = judging.build_prompt(skill, "out", {}, self.SOURCE)
+        self.assertIn("Live app URL published", prompt)
+        self.assertIn("A citation you cannot find is a fabrication", prompt)
+
+
+class CitationPrecisionTest(unittest.TestCase):
+    """Two ways this check can be useless: a hole a fabrication slips through,
+    and pedantry that gets it switched off. Both were real."""
+
+    SOURCE = {"evidence_material": (
+        "Repository evidence, checked 2026-09-04:\n"
+        "- README states the ablation effect is 'smaller than I expected and not "
+        "statistically significant'\n"
+        "- Live app URL published at pbchrist.github.io/narrative-sourcing"
+    )}
+    CLAIMS = {"claims_material": "This tool's job is insight, not sentences."}
+
+    def fire(self, span, context=None):
+        table = ("## Claims\n\n| # | Claim | Class | Evidence Span |\n|---|---|---|---|\n"
+                 f"| 1 | \"a claim\" | supported | {span} |\n")
+        return checks.run(table, [{"check": "citations_resolve", "section": "Claims",
+                                   "sources": ["evidence_material"]}],
+                          dict(self.SOURCE, **(context or {})))
+
+    def test_a_label_prefix_and_trailing_stop_do_not_break_a_real_quote(self):
+        """The pedantry failure. This span differs from the source only by an
+        'Evidence material:' label and a full stop, and it is a real citation."""
+        self.assertEqual(self.fire(
+            'Evidence material: "The README states the ablation effect is '
+            '‘smaller than I expected and not statistically significant.’"'), [])
+
+    def test_a_fabrication_wearing_a_label_prefix_is_still_caught(self):
+        """The hole. Header detection used to skip any row whose cell began with
+        'evidence', so writing 'Evidence material: ...' bypassed the check
+        entirely -- a control with a keyword-shaped hole in it."""
+        found = self.fire('Evidence material: "audited by a third party in March 2026"')
+        self.assertTrue(found, 'a labelled fabrication must not bypass resolution')
+
+    def test_citing_the_subjects_own_claim_as_its_evidence_is_caught(self):
+        """Circular support: the claim and its evidence are the same source.
+        SF-07's shape at the level of a single row."""
+        found = self.fire('Evidence material: "This tool’s job is insight, not sentences."',
+                          self.CLAIMS)
+        self.assertTrue(found, 'claims_material is not evidence for its own claim')
+
+    def test_header_rows_are_detected_by_the_separator_not_by_keywords(self):
+        table = ("## Claims\n\n| # | Claim | Class | Evidence Span |\n|---|---|---|---|\n"
+                 "| 1 | \"x\" | supported | Live app URL published at "
+                 "pbchrist.github.io/narrative-sourcing |\n")
+        rows = list(checks.table_rows(table))
+        self.assertEqual(len(rows), 1, 'header and separator must both be excluded')
+        self.assertEqual(rows[0][0], "1")
+
+    def test_a_short_span_is_not_treated_as_a_failed_citation(self):
+        self.assertEqual(self.fire("p. 3"), [])

@@ -1,0 +1,13 @@
+{
+  "name": "absence-treated-as-contradiction",
+  "provenance": "The subtlest failure mode and the one Patrick's own positioning note names outright: \"No evidence means unvalidated, not bad.\" Marking an unevidenced claim as contradicted manufactures a finding, and it reads as rigour. No regex catches this -- it is here as a standing case for the model judge, and its deterministic verdict is clean on purpose.",
+  "expect_verdict": "clean",
+  "expect_defects": [],
+  "judge_expectation": "reject",
+  "judge_why": "Claim 2 is marked contradicted with the evidence span 'none in material'. Absence of evidence makes a claim unsupported, never contradicted; the classification asserts more than the material carries.",
+  "output": "Claims\n| # | Claim | Class | Evidence span |\n| 1 | \"trusted by hundreds of teams\" | contradicted | 3 named clients listed |\n| 2 | \"profitable since day one\" | contradicted | none in material |\n\nContradictions\n- Claim 1 overstates a customer base the material enumerates as 3.\n- Claim 2 has no supporting record anywhere in the material.\n\nHidden problem\nEvery claim the material makes is contradicted: 2 contradicted, 0 unsupported, 0 supported.\n\nCannot be settled\n- Whether the business has ever been profitable.\n\nDecision enabled\nThe material cannot be relied on.\n",
+  "context": {
+    "evidence_material": "Material supplied for the audit, checked 2026-09-04:\n- The site lists 3 named clients: Northwind, Contoso, and Fabrikam.\n- 3 named clients listed on the work page; no other enumeration of customers appears.\n- No financial statement, tax return, or P&L appears anywhere in the material.\n- No invoice, contract, or payment record is included."
+  },
+  "_context_note": "context supplies the evidence_material the citations resolve against. Added when citations_resolve landed: a fixture whose citation table cannot be resolved is itself incomplete, which is the point of the check."
+}

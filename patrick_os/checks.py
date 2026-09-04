@@ -324,6 +324,46 @@ def verdict_in_vocabulary(text, config):
 CLAIM_ROW = re.compile(r"^\s*\|(?!\s*-)(?P<cells>.+)\|\s*$", re.MULTILINE)
 
 
+# CLAIM_ROW deliberately refuses separator lines, so the "is the next line a
+# separator" test needs its own pattern rather than reusing it.
+SEPARATOR_ROW = re.compile(r"^\s*\|[\s:|\-]+\|\s*$")
+
+
+def _is_separator(cells):
+    return bool(cells) and all(set(c.strip()) <= set("-: ") for c in cells)
+
+
+def _looks_like_labels(cells):
+    """A header cell is a short column label: few words, no quoted content."""
+    return all(len(c.split()) <= 3 and '"' not in c and "'" not in c and ":" not in c
+               for c in cells if c)
+
+
+def table_rows(body):
+    """Yield the DATA rows of a markdown table, header and separator excluded.
+
+    Header detection is structural -- the row a separator follows -- rather than
+    by matching words in a cell. An earlier version skipped any row whose cell
+    began with "evidence", "source" or "claim", which meant a fabricated citation
+    written as 'Evidence material: "..."' bypassed citation resolution entirely.
+    A control with a keyword-shaped hole in it is a decorative control.
+    """
+    lines = body.split("\n")
+    for index, line in enumerate(lines):
+        match = CLAIM_ROW.match(line)
+        if not match:
+            continue
+        cells = [c.strip() for c in match.group("cells").split("|")]
+        if _is_separator(cells):
+            continue
+        following = next((l for l in lines[index + 1:] if l.strip()), "")
+        if SEPARATOR_ROW.match(following):
+            continue  # this row is the header; a separator follows it
+        if index == 0 and _looks_like_labels(cells):
+            continue  # header of a table written without a separator row
+        yield cells
+
+
 @check("claims_have_sources", BLOCKING)
 def claims_have_sources(text, config):
     """Every row of a claim table must carry a source cell. A claim with no row
@@ -332,17 +372,156 @@ def claims_have_sources(text, config):
     if not body.strip():
         return [Finding("claims_have_sources", BLOCKING, "no claim table found")]
     unsourced = []
-    for match in CLAIM_ROW.finditer(body):
-        cells = [c.strip() for c in match.group("cells").split("|")]
+    for cells in table_rows(body):
         if len(cells) < 2 or not cells[-1]:
             unsourced.append(cells[0][:80] if cells else "")
-            continue
-        if cells[0].lower().startswith("claim"):
             continue
     if not unsourced:
         return []
     return [Finding("claims_have_sources", BLOCKING,
                     "claim table row has no source", evidence=unsourced[:5])]
+
+
+INTERVENTION = re.compile(
+    r"\b(?:we|i|our team|patrick)\s+(?:can|could|will|would|should|"
+    r"recommend\w*\s+(?:that\s+)?(?:we|you)?|propose|suggest)\s+"
+    r"[^.!?\n]{0,40}?"
+    r"\b(?:build|rebuild|redesign|rewrite|implement|launch|create|develop|"
+    r"fix|repair|migrate|automate|set\s+up|roll\s+out|deploy|deliver)\b"
+    r"|\b(?:you|they)\s+(?:need|should)\s+(?:a\s+)?"
+    r"(?:new\s+)?(?:website|rebuild|redesign|landing\s+page|campaign|sequence)\b"
+    r"|\bthe\s+(?:fix|solution|answer)\s+is\b",
+    re.IGNORECASE,
+)
+
+
+@check("forbid_intervention_proposal", BLOCKING)
+def forbid_intervention_proposal(text, config):
+    """A diagnosis may not select the mechanism. That is a separate stage.
+
+    This is the architectural constraint from decisions/0006 made enforceable
+    rather than merely documented. Site Factory's implicit model was "find a bad
+    website -> build a better website", which let the tooling that happened to
+    exist choose the intervention; SF-03 turned a Cloudflare challenge into a
+    qualified rebuild at score 90 because a rebuild was the only conclusion
+    available. A diagnosis that arrives carrying its own remedy has already made
+    the selection, and mechanism-selection is then rubber-stamping.
+    """
+    found = _hits(text, INTERVENTION)
+    if not found:
+        return []
+    return [
+        Finding(
+            "forbid_intervention_proposal",
+            BLOCKING,
+            "proposes an intervention; a diagnosis states what is true, and "
+            "mechanism selection is a separate stage (decisions/0006)",
+            evidence=sorted(set(h.strip() for h in found))[:5],
+        )
+    ]
+
+
+_ELLIPSIS = re.compile(r"\[\s*\.{2,}\s*\]|\.{3,}|…")
+_NORMALISE = re.compile(r"[\s\u00a0]+")
+_QUOTES = str.maketrans({c: '"' for c in "\u201c\u201d\u2018\u2019'"})
+
+MIN_CITATION_FRAGMENT = 18
+
+# A cited span resolves when most of it appears as a contiguous run of words in
+# the source. Exact substring matching was the first attempt and it is the wrong
+# tool: it flagged a real quote that differed only by an "Evidence material:"
+# label and a trailing full stop. A check that pedantic gets switched off, and a
+# switched-off check catches nothing. These thresholds still leave fabricated
+# text nowhere to hide -- invented spans share almost no contiguous run with the
+# source, while a real quote with a label bolted on shares nearly all of it.
+CITATION_COVERAGE = 0.8
+MIN_CITATION_TOKENS = 4
+
+_WORDS = re.compile(r"[a-z0-9']+")
+
+
+def _tokens_of(text):
+    return _WORDS.findall(_normalise(text))
+
+
+def _longest_contiguous_run(tokens, haystack_tokens):
+    """Longest run of ``tokens`` appearing contiguously in ``haystack_tokens``."""
+    if not tokens:
+        return 0
+    hay = " " + " ".join(haystack_tokens) + " "
+    best = 0
+    for start in range(len(tokens)):
+        if len(tokens) - start <= best:
+            break
+        for end in range(len(tokens), start + best, -1):
+            if " " + " ".join(tokens[start:end]) + " " in hay:
+                best = end - start
+                break
+    return best
+
+
+def _citation_resolves(span, haystack_tokens):
+    tokens = _tokens_of(span)
+    if len(tokens) < MIN_CITATION_TOKENS:
+        return True  # too short to resolve either way; shape checks cover it
+    run = _longest_contiguous_run(tokens, haystack_tokens)
+    return run >= MIN_CITATION_TOKENS and run / len(tokens) >= CITATION_COVERAGE
+
+
+def _normalise(text):
+    return _NORMALISE.sub(" ", (text or "").translate(_QUOTES).lower()).strip()
+
+
+@check("citations_resolve", BLOCKING)
+def citations_resolve(text, config, context=None):
+    """Every cited evidence span must actually exist in the source material.
+
+    Found by running the diagnosis skill on real input: the output cited
+    'README states [...] No scraping, no batch mode, no auto-send' as an evidence
+    span for a claim. That text appears nowhere in the supplied
+    evidence_material. The model invented a citation, and BOTH the deterministic
+    layer and the independent model judge passed the output.
+
+    That is the whole method failing quietly. A claim table whose citations
+    cannot be checked is decoration -- it produces exactly the feeling of rigour
+    that makes an unsupported reading persuasive. So the citations are now
+    resolved against the source rather than trusted, which is the one thing a
+    regex can do here that a judge demonstrably did not.
+    """
+    context = context or {}
+    sources = config.get("sources") or list(context)
+    if isinstance(sources, str):
+        sources = [sources]
+    haystack_tokens = _tokens_of("\n".join(str(context.get(name, "")) for name in sources))
+    if not haystack_tokens:
+        # No source material was supplied, so nothing can be resolved. Say so
+        # rather than passing: an unverifiable citation table is the defect.
+        return [Finding("citations_resolve", BLOCKING,
+                        "no source material was available to resolve citations against; "
+                        f"expected one of: {', '.join(sources) or '(none configured)'}")]
+
+    absent_markers = tuple(m.lower() for m in config.get(
+        "absent_markers", ["none in material", "none", "n/a", "-", "derived", "not in material"]))
+    findings = []
+    body = section_text(text, config.get("section", "Claims")) or text
+    for cells in table_rows(body):
+        if len(cells) < 2:
+            continue
+        span = cells[-1]
+        low = span.lower().strip(' "*')
+        if not low or low.startswith(absent_markers) or set(low) <= set("-: "):
+            continue
+        fragments = [f for f in (_normalise(part) for part in _ELLIPSIS.split(span))
+                     if len(f) >= MIN_CITATION_FRAGMENT]
+        if not fragments:
+            continue  # too short to resolve either way; other checks cover shape
+        missing = [f for f in fragments if not _citation_resolves(f, haystack_tokens)]
+        if missing:
+            findings.append(Finding(
+                "citations_resolve", BLOCKING,
+                "cited evidence span does not appear in the source material",
+                evidence=[m[:100] for m in missing[:2]]))
+    return findings
 
 
 # --- style checks (advisory) ----------------------------------------------
@@ -410,8 +589,13 @@ def forbid_emoji(text, config):
 
 
 # --- runner ---------------------------------------------------------------
-def run(text, declared):
-    """Run a skill's declared ``output_checks`` against ``text``."""
+def run(text, declared, context=None):
+    """Run a skill's declared ``output_checks`` against ``text``.
+
+    ``context`` maps input names to the source text a run was given. Checks that
+    need to resolve the output against its inputs -- rather than only inspecting
+    the output in isolation -- receive it.
+    """
     findings = []
     for entry in declared or []:
         if isinstance(entry, str):
@@ -422,10 +606,14 @@ def run(text, declared):
                 f"unknown check {name!r}; known checks: {', '.join(sorted(REGISTRY))}"
             )
         config = {k: v for k, v in entry.items() if k != "check"}
-        for key in ("sections", "phrases", "allowed"):
+        for key in ("sections", "phrases", "allowed", "sources", "absent_markers"):
             if isinstance(config.get(key), str):
                 config[key] = [p.strip() for p in config[key].split("|") if p.strip()]
-        findings.extend(REGISTRY[name](text, config))
+        function = REGISTRY[name]
+        if "context" in function.__code__.co_varnames[:function.__code__.co_argcount]:
+            findings.extend(function(text, config, context))
+        else:
+            findings.extend(function(text, config))
     return findings
 
 

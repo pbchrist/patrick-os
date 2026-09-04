@@ -1,0 +1,13 @@
+{
+  "name": "carries-a-remedy",
+  "provenance": "The stage violation that produced SF-03. Everything else about this output is correct -- claims quoted, classifications cited, contradiction real -- and it is still blocked, because a diagnosis that arrives with its own remedy has already made the mechanism choice and leaves the next stage rubber-stamping.",
+  "expect_verdict": "blocked",
+  "expect_defects": [
+    "forbid_intervention_proposal"
+  ],
+  "output": "Claims\n| # | Claim | Class | Evidence span |\n| 1 | \"trusted by hundreds of teams\" | contradicted | 3 named clients listed |\n\nContradictions\n- Claim 1 says \"hundreds of teams\"; the material enumerates 3 clients.\n\nHidden problem\nThe material asserts scale it cannot evidence: 1 claim contradicted, 0 supported.\n\nCannot be settled\n- Actual customer count: an invoice count would settle it.\n\nDecision enabled\nWe can rewrite the homepage to drop the unsupported figure and rebuild the proof section around the three real clients.\n",
+  "context": {
+    "evidence_material": "Material supplied for the audit, checked 2026-09-04:\n- The site lists 3 named clients: Northwind, Contoso, and Fabrikam.\n- 3 named clients listed on the work page; no other enumeration of customers appears.\n- No financial statement, tax return, or P&L appears anywhere in the material.\n- No invoice, contract, or payment record is included."
+  },
+  "_context_note": "context supplies the evidence_material the citations resolve against. Added when citations_resolve landed: a fixture whose citation table cannot be resolved is itself incomplete, which is the point of the check."
+}

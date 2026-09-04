@@ -35,8 +35,8 @@ class IndependenceError(JudgeError):
     """The judge and the writer are the same provider. Refuse rather than measure."""
 
 
-def deterministic(skill, output):
-    findings = checks.run(output, skill.output_checks)
+def deterministic(skill, output, context=None):
+    findings = checks.run(output, skill.output_checks, context)
     return {
         "verdict": checks.verdict(findings),
         "blocking": [f.as_dict() for f in findings if f.severity == checks.BLOCKING],
@@ -44,7 +44,7 @@ def deterministic(skill, output):
     }
 
 
-def build_prompt(skill, output, deterministic_result):
+def build_prompt(skill, output, deterministic_result, context=None):
     """The judge prompt is the skill's own quality checks, not an exemplar.
 
     Nothing in here shows the judge what a good answer looks like, because that is
@@ -72,6 +72,15 @@ def build_prompt(skill, output, deterministic_result):
         "## Conditions that require escalation to a human",
         "",
         skill.section("Escalation") or "(none declared)",
+        "",
+        "## The source material this output was produced from",
+        "",
+        ("\n\n".join(f"### {name}\n{value}" for name, value in sorted((context or {}).items()))
+         or "(not supplied -- you cannot verify citations against it)"),
+        "",
+        "Every quotation the output attributes to that material must actually",
+        "appear in it. A citation you cannot find is a fabrication, and it is the",
+        "most damaging defect available here because it looks like rigour.",
         "",
         "## Deterministic checks already run",
         "",
@@ -138,9 +147,11 @@ def choose_judge(writer_provider_key, base=None, table=None):
 
 
 def judge(skill, output, *, writer_provider=None, base=None, table=None,
-          transport=None, execute=False):
+          transport=None, execute=False, context=None):
     """Run deterministic checks, then optionally an independent model judge."""
-    result = {"skill": skill.slug, "deterministic": deterministic(skill, output)}
+    result = {"skill": skill.slug,
+              "deterministic": deterministic(skill, output, context),
+              "context_inputs": sorted(context or {})}
     if not execute:
         result["model_judge"] = None
         result["note"] = (
@@ -150,7 +161,7 @@ def judge(skill, output, *, writer_provider=None, base=None, table=None,
         return result
 
     candidates, decision = independent_candidates(writer_provider, base, table)
-    prompt = build_prompt(skill, output, result["deterministic"])
+    prompt = build_prompt(skill, output, result["deterministic"], context)
     result["writer_provider"] = writer_provider
     result["judge_route"] = decision.route_name
 

@@ -254,11 +254,13 @@ class ShippedSkillsTest(unittest.TestCase):
         self.skills = skills.list_skills(REPO)
         self.table = route_table.load(REPO / "config" / "routes.json")
 
-    def test_the_five_named_skills_exist(self):
-        self.assertEqual(
-            {s.slug for s in self.skills},
+    def test_the_five_skills_named_by_the_brief_exist(self):
+        """The brief named these five by slug. Later skills may be added; these
+        may not quietly disappear or be renamed."""
+        self.assertTrue(
             {"reddit-mine", "linkedin-reply", "recruiter-outreach",
-             "site-factory-prospect", "site-factory-email"},
+             "site-factory-prospect", "site-factory-email"}
+            <= {s.slug for s in self.skills}
         )
 
     def test_every_skill_is_structurally_valid(self):

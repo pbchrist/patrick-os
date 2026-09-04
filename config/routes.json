@@ -132,6 +132,18 @@
       "_why": "Site Factory's hardest-won lesson (SF-07): a judge that shares a model or an answer key with the writer measures nothing. The judge must differ from the writer, by construction. Order is by strength of independence, not convenience: a different vendor (anthropic-opus) separates model, system prompt and safety stack; a second model on the same credential (hermes-copilot-4o) separates only the model, and is the last resort that keeps judging possible at all on a one-provider machine."
     },
     {
+      "task_class": "diagnosis",
+      "prefer": ["anthropic-opus", "hermes-copilot", "hermes-copilot-4o"],
+      "min_quality": 3,
+      "_why": "Diagnosis is where a seductive but unsupported reading does the most damage, and it is the one stage whose output every later stage inherits. It does not go to the cheap model. This is the same reasoning as the draft route, applied a stage earlier: the difference between a seductive interpretation and a defensible one is the product."
+    },
+    {
+      "task_class": "mechanism-selection",
+      "prefer": ["anthropic-opus", "hermes-copilot", "hermes-copilot-4o"],
+      "min_quality": 3,
+      "_why": "Choosing the intervention is the decision Site Factory was making implicitly by having only one tool. It gets a strong model and, like diagnosis, must be able to conclude that nothing is warranted."
+    },
+    {
       "task_class": "classify",
       "prefer": ["local-qwen", "hermes-copilot"],
       "max_cost_per_1k": 1.0

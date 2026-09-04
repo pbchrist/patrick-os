@@ -1,0 +1,25 @@
+{
+  "name": "routes-to-a-strong-model",
+  "_note": "Diagnosis is the one stage every later stage inherits. It must not fall to the cheap local model on cost grounds the way research does.",
+  "inputs": {
+    "subject": "A two-person agency",
+    "claims_material": "Trusted by hundreds of teams. Profitable since day one.",
+    "evidence_material": "Three client logos are shown. No financials appear anywhere."
+  },
+  "expect": {
+    "must_contain": [
+      "unsupported",
+      "contradicted",
+      "Do not propose a rebuild",
+      "mechanism selection, a\nseparate stage",
+      "[G-001]",
+      "[G-003]",
+      "[G-010]"
+    ],
+    "route_route": "diagnosis",
+    "route_provider": "anthropic-opus",
+    "route_denies": [
+      "local-qwen"
+    ]
+  }
+}

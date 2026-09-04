@@ -1,0 +1,10 @@
+{
+  "name": "fabricated-citation",
+  "provenance": "Taken from a real execute of this skill on 2026-09-04, auditing narrative-sourcing's own README. The output cited 'README states [...] No scraping, no batch mode, no auto-send' as the evidence span for claim 14. That text appears nowhere in the supplied evidence_material. Both the deterministic layer AND the independent model judge passed it. This is the most important fixture in the repository: it is the whole method failing quietly, and it is the case that motivated citations_resolve.",
+  "context": {
+    "evidence_material": "Repository evidence, checked 2026-09-04:\n- Published ablation page exists: docs/evidence.html present: yes\n- README states the ablation effect is 'smaller than I expected and not statistically significant'\n- Live app URL published at pbchrist.github.io/narrative-sourcing\n- No user count, no adoption record, and no payment record appears anywhere in the repository"
+  },
+  "expect_verdict": "blocked",
+  "expect_defects": ["citations_resolve"],
+  "output": "## Claims\n\n| # | Verbatim Claim | Classification | Evidence Span |\n|---|---|---|---|\n| 1 | \"Runs in your browser against a model you choose.\" | supported | Live app URL published at pbchrist.github.io/narrative-sourcing |\n| 2 | \"No scraping, no batch mode, no auto-send.\" | supported | README states [...] No scraping, no batch mode, no auto-send |\n| 3 | \"The loop is broken.\" | unsupported | none in material |\n\n## Contradictions\n\nNone of the listed claims directly contradict each other.\n\n## Hidden problem\n\nThe material asserts capability it cannot evidence: 0 contradicted, 1 unsupported, 2 supported.\n\n## Cannot be settled\n\n1. Whether outreach reply rates changed: a measured before/after would settle it.\n\n## Decision enabled\n\nThe technical claims hold up; the premise claims do not yet.\n"
+}

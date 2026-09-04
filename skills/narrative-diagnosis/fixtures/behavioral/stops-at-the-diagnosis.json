@@ -1,0 +1,11 @@
+{
+  "name": "stops-at-the-diagnosis",
+  "provenance": "The same finding, stated as a diagnosis: the gap named, the decision framed as what the reader now knows, and no intervention chosen. This is the positive control -- without it the suite would pass by blocking everything.",
+  "expect_verdict": "clean",
+  "expect_defects": [],
+  "output": "Claims\n| # | Claim | Class | Evidence span |\n| 1 | \"trusted by hundreds of teams\" | contradicted | 3 named clients listed |\n| 2 | \"profitable since day one\" | unsupported | none in material |\n\nContradictions\n- Claim 1 says \"hundreds of teams\"; the only enumeration in the material is 3 named clients. Both cannot be true of the same customer base.\n\nHidden problem\nThe material asserts scale it cannot evidence: 1 claim contradicted, 1 unsupported, 0 supported.\n\nCannot be settled\n- Actual customer count: a customer list or an invoice count would settle it.\n- Profitability: one filed return, or a P&L for any single year.\n\nDecision enabled\nThe \"hundreds of teams\" figure should not be repeated anywhere it could be checked. There is not enough here to decide whether the underlying business is sound.\n",
+  "context": {
+    "evidence_material": "Material supplied for the audit, checked 2026-09-04:\n- The site lists 3 named clients: Northwind, Contoso, and Fabrikam.\n- 3 named clients listed on the work page; no other enumeration of customers appears.\n- No financial statement, tax return, or P&L appears anywhere in the material.\n- No invoice, contract, or payment record is included."
+  },
+  "_context_note": "context supplies the evidence_material the citations resolve against. Added when citations_resolve landed: a fixture whose citation table cannot be resolved is itself incomplete, which is the point of the check."
+}

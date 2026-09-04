@@ -39,7 +39,7 @@
       ],
       "tiers": ["note", "audit", "pilot"],
       "status": "declared",
-      "_note": "Per Patrick's own positioning note this is the cash engine's repeatable offer, and it is not a website intervention. Nothing here executes it yet, which is exactly the gap a website-shaped system would never surface."
+      "_note": "Per Patrick's own positioning note this is the cash engine's repeatable offer, and it is not a website intervention. Still no executor, and the executors list stays empty on purpose: the analysis this offer is built on is produced by narrative-diagnosis, which is mechanism-AGNOSTIC by design -- a diagnosis that presumed positioning would be selecting the mechanism, which is the next stage's job. What positioning actually lacks is the sellable artifact at the audit tier, and that is a sales-artifact stage skill. The sales-artifact stage is empty."
     },
 
     "messaging": {

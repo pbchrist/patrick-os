@@ -105,6 +105,40 @@ quarter.
 Workflow promotion is refused outright. Patrick OS rewrites rules, not
 procedures.
 
+## Checks that resolve against the source, not just the output
+
+Most checks inspect the output in isolation. `citations_resolve` does not: it is
+given the run's inputs and resolves every cited evidence span against the source
+material.
+
+It exists because of a specific failure. Running `narrative-diagnosis` on real
+material produced an output citing `README states [...] No scraping, no batch
+mode, no auto-send` as the evidence for a claim. That text appears nowhere in the
+supplied `evidence_material`. **The deterministic layer passed it and the
+independent model judge passed it.** A fabricated citation is the most damaging
+defect available in an evidence-grounded system, because it produces exactly the
+feeling of rigour that makes an unsupported reading persuasive.
+
+Two lessons, and they generalise past this one check:
+
+1. **A check that only reads the output cannot catch a claim about the input.**
+   `checks.run(text, declared, context)` takes the run's inputs, and
+   `patrick judge` loads them from `run.json` automatically — asking the operator
+   to pass them again would make the check that matters most the one most often
+   skipped.
+2. **A control with a keyword-shaped hole is a decorative control.** The first
+   version skipped table rows whose cell began with "evidence", "source" or
+   "claim", to avoid re-checking header rows. That meant any fabrication written
+   as `Evidence material: "..."` bypassed the check entirely. Header rows are now
+   detected structurally, by the separator line that follows them.
+
+Resolution is coverage-based rather than exact-substring: a span resolves when
+80% of its words appear as a contiguous run in the source. Exact matching was the
+first attempt and flagged a real quote that differed only by a label prefix and a
+full stop. A check that pedantic gets switched off, and a switched-off check
+catches nothing. Fabricated spans share almost no contiguous run with the source;
+a real quote with a label bolted on shares nearly all of it.
+
 ## What was built now, and what was not
 
 Built — the minimum that lets the rest arrive later without a rewrite:

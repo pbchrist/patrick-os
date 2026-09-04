@@ -116,15 +116,28 @@ class ValidationTest(TempRootTest):
 
 
 class CoverageTest(unittest.TestCase):
-    def test_coverage_reports_the_stages_that_have_nothing(self):
-        """The gap must be visible. Five of eight stages are empty, and a system
-        that cannot say so behaves as though the three it has are the business."""
+    def test_coverage_distinguishes_covered_stages_from_empty_ones(self):
+        """The gap must stay visible. This asserts the mechanism works, not a
+        particular snapshot of it -- pinning the empty list would mean every new
+        skill breaks a test that is not about that skill."""
         registry = pipeline.load_mechanisms(REPO / "config" / "mechanisms.json")
         report = pipeline.coverage(skills.list_skills(REPO), registry)
+        covered = [s for s in pipeline.STAGES if report["by_stage"][s]]
         empty = [s for s in pipeline.STAGES if not report["by_stage"][s]]
-        for stage in ("diagnosis", "mechanism-selection", "sales-artifact"):
-            self.assertIn(stage, empty, f"{stage} unexpectedly has a skill")
-        self.assertTrue(report["by_stage"]["signal"])
+        self.assertTrue(covered and empty,
+                        "coverage must report both sides or it is not a gap report")
+        self.assertEqual(len(covered) + len(empty), len(pipeline.STAGES))
+        for stage in covered:
+            for slug in report["by_stage"][stage]:
+                self.assertEqual(skills.load_skill(slug, REPO).stage, stage)
+
+    def test_the_result_and_learning_stages_are_still_unbuilt(self):
+        """Result intake is the missing half of learning: nothing captures what a
+        prospect actually did. Until it exists, strategy/ can only be written by
+        hand. When this test starts failing, docs/ARCHITECTURE.md needs updating."""
+        registry = pipeline.load_mechanisms(REPO / "config" / "mechanisms.json")
+        report = pipeline.coverage(skills.list_skills(REPO), registry)
+        self.assertEqual(report["by_stage"]["result"], [])
 
     def test_coverage_reports_mechanisms_with_no_executor(self):
         registry = pipeline.load_mechanisms(REPO / "config" / "mechanisms.json")

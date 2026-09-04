@@ -1,0 +1,10 @@
+{
+  "name": "citations-all-resolve",
+  "provenance": "The positive control for citations_resolve: the same shape with every cited span present verbatim in the source, and unsupported claims correctly citing nothing. Without this the check could pass the suite by rejecting every citation.",
+  "context": {
+    "evidence_material": "Repository evidence, checked 2026-09-04:\n- Published ablation page exists: docs/evidence.html present: yes\n- Live app URL published at pbchrist.github.io/narrative-sourcing\n- No user count, no adoption record, and no payment record appears anywhere in the repository"
+  },
+  "expect_verdict": "clean",
+  "expect_defects": [],
+  "output": "## Claims\n\n| # | Verbatim Claim | Classification | Evidence Span |\n|---|---|---|---|\n| 1 | \"Runs in your browser against a model you choose.\" | supported | Live app URL published at pbchrist.github.io/narrative-sourcing |\n| 2 | \"Trusted by hundreds of teams.\" | contradicted | No user count, no adoption record, and no payment record appears anywhere in the repository |\n| 3 | \"The loop is broken.\" | unsupported | none in material |\n\n## Contradictions\n\n- Claim 2 asserts a user base; the material records that no user count appears anywhere.\n\n## Hidden problem\n\nThe material asserts adoption it cannot evidence: 1 contradicted, 1 unsupported, 1 supported.\n\n## Cannot be settled\n\n1. Actual adoption: one usage log, or one named user, would settle it.\n\n## Decision enabled\n\nThe adoption claim should not be repeated anywhere it could be checked.\n"
+}

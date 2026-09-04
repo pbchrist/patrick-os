@@ -1,0 +1,6 @@
+{
+  "name": "requires-claims-material",
+  "_note": "Without the subject's own words there is nothing to audit; a summary has already done the interpretation this skill exists to do carefully.",
+  "inputs": { "subject": "A business" },
+  "expect": { "invalid_inputs": true }
+}

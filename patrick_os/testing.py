@@ -93,7 +93,8 @@ def check_behavioral(skill, fixture):
     """Run a skill's declared output checks against a real produced output."""
     from . import checks
 
-    findings = checks.run(fixture["output"], skill.output_checks)
+    findings = checks.run(fixture["output"], skill.output_checks,
+                          fixture.get("context"))
     verdict = checks.verdict(findings)
     failures = []
     if verdict != fixture["expect_verdict"]:

@@ -277,12 +277,31 @@ def cmd_feedback(args):
     return 1
 
 
+def _run_context(output_path):
+    """Load the inputs of the run that produced this output, if it came from one.
+
+    Checks that resolve an output against its source need the source. When the
+    output sits in a run directory, run.json already has it -- asking the user to
+    pass it again would mean the check that matters most is the one most often
+    skipped.
+    """
+    record = Path(output_path).expanduser().resolve().parent / "run.json"
+    if not record.is_file():
+        return {}
+    try:
+        data = json.loads(record.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    return {k: str(v) for k, v in (data.get("inputs") or {}).items()}
+
+
 def cmd_judge(args):
     skill = skills.load_skill(args.slug, args.root)
     output = _read(args.output)
+    context = {} if args.no_context else _run_context(args.output)
     try:
         result = judging.judge(skill, output, writer_provider=args.writer,
-                               base=args.root, execute=args.execute)
+                               base=args.root, execute=args.execute, context=context)
     except judging.IndependenceError as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
@@ -479,6 +498,8 @@ def build_parser():
     p.add_argument("slug")
     p.add_argument("--output", required=True, help="file containing the produced output")
     p.add_argument("--writer", help="provider that wrote it; the judge must differ")
+    p.add_argument("--no-context", action="store_true",
+                   help="do not load the run's inputs; citations become unverifiable")
     p.add_argument("--execute", action="store_true",
                    help="also call an independent judge provider")
     p.add_argument("--json", action="store_true")
