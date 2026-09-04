@@ -3,9 +3,6 @@ name: weekly-close
 version: 1
 purpose: Close the week honestly — what moved, what is now inactive, what is still unvalidated, and what a result changed — without letting effort read as progress.
 task_class: diagnosis.review
-stage: learning
-mechanism_agnostic: true
-investment_tier: note
 channel: null
 project: null
 outputs: report

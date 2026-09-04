@@ -12,22 +12,42 @@ load. Every provider — a local Qwen server, Hermes, Anthropic, OpenAI — is a
 in `config/routes.json`, and routing is a pure function that resolves with no
 keys and no network. Claude is a worker inside this system, not the system.
 
-## Architecture
+## What Patrick OS is
 
-The top-level model is the commercial pipeline, not any one workflow:
+Patrick OS is the **operating layer for Patrick's AI work**. It is not a
+lead-generation system, a Site Factory wrapper, or an opportunity engine.
 
-```
-signals -> qualification -> diagnosis -> mechanism selection
-        -> sales artifact -> outreach -> result -> learning
-```
+Its job is to make every project smarter, more consistent and more reusable than
+it would be on its own, by holding six things centrally so that no project has to
+reinvent them:
 
-**Site Factory is the executor for web-based interventions — it is not the
-decision engine.** Mechanism selection sits above it and can conclude that a
-non-web intervention, or no intervention, is what the evidence supports.
+| | |
+|---|---|
+| **Persistent context and decisions** | `projects/`, `decisions/` |
+| **Reusable skills** | `skills/` — procedures, not prompts |
+| **Model and tool routing** | `config/routes.json`, `patrick_os/router/` |
+| **Independent judgment and QA** | `patrick_os/checks.py`, `judging.py` |
+| **Feedback-driven learning** | `feedback/`, `voice/`, `strategy/` |
+| **Orchestration across projects** | `runner.py`, `retrieval.py`, `domains/` |
 
-`patrick pipeline` prints how much of that actually exists (8 of 8 stages, one
-served by tooling — though a covered stage is not a good stage: no mechanism has
-a measured result behind it yet). Full detail, including the interfaces future stages will need, is in
+Site Factory, the Opportunity Engine, recruiting, writing, research and fiction
+are **consumers** of Patrick OS. They are not Patrick OS.
+
+## Domains
+
+Subject knowledge lives in a domain pack under `patrick_os/domains/`, never in
+the core. A domain declares the vocabulary true of one *kind* of work — the
+commercial pack declares pursuit stages, intervention mechanisms, investment
+tiers and outcome types.
+
+**A skill that declares no domain is a plain OS skill and is valid as-is.** That
+sentence is the correction: `stage` used to be required of every skill, drawn
+from a commercial pipeline, so a fiction skill could not validate — it was made
+to declare which sales intervention it served. Tests now enforce that no core
+module imports a pack.
+
+`patrick pipeline` is a view of the **commercial domain**, not of Patrick OS.
+`patrick skills list` is the OS-level view. Full detail, including the interfaces future stages will need, is in
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and `decisions/0006`. The
 Opportunity Engine is deliberately **not** built yet.
 
@@ -82,7 +102,8 @@ a file. **Nothing in v1 sends anything anywhere** — see decision 0004.
 | `schedules/` | Declarative recurring work. Names a skill; contains no logic.   |
 | `decisions/` | Things that stay decided.                                       |
 | `tests/`     | The unit suite. `patrick test` runs it alongside skill fixtures. |
-| `config/`    | `routes.json` (model routing), `mechanisms.json` (intervention types), `retrieval.json` (how sources are read). |
+| `domains/`   | Subject knowledge, per kind of work. `commercial/` holds what used to sit in the core. |
+| `config/`    | `routes.json` (routing), `retrieval.json` (sources), `domains.json` (enabled packs), `domains/*` (per-domain config). |
 | `docs/`      | `ARCHITECTURE.md` — the pipeline and the three axes. `TOPOLOGY.md` — the audited model and retrieval infrastructure. |
 | `runs/`      | Local run artifacts. Gitignored.                                |
 

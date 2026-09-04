@@ -3,6 +3,7 @@ name: narrative-decision-audit
 version: 1
 purpose: Turn a completed diagnosis into the artifact a buyer reads and decides from — preserve, eliminate, reposition, or test — with the evidence behind every line.
 task_class: draft.artifact
+domain: commercial
 stage: sales-artifact
 mechanisms:
   - positioning

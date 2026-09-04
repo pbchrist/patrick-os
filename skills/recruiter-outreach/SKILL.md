@@ -7,9 +7,6 @@ channel: email
 project: narrative-sourcing
 outputs: draft
 dry_run_default: true
-stage: outreach
-mechanism_agnostic: true
-investment_tier: note
 sends: false
 min_quality: 3
 inputs:

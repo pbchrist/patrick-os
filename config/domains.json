@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "Domains this installation has enabled. A domain pack holds everything true",
+    "of one KIND of work; the core holds what is true of all of them.",
+    "",
+    "Patrick OS runs fine with this empty. Skills that declare no domain are plain",
+    "OS skills and validate without any of this vocabulary -- which is the point:",
+    "a fiction or research skill must never be asked which sales intervention it",
+    "serves."
+  ],
+  "domains": {
+    "commercial": {
+      "label": "Commercial pursuit",
+      "pack": "patrick_os/domains/commercial",
+      "consumers": ["site-factory", "opportunity-engine"],
+      "note": "Stages, interventions, investment tiers and outcomes for finding and serving paying work. Site Factory is one executor inside this domain, not the domain itself, and neither the domain nor Site Factory is Patrick OS."
+    }
+  }
+}

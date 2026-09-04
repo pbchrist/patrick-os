@@ -137,31 +137,6 @@ def forbid_perception_language(text, config):
     ]
 
 
-MANUFACTURED = re.compile(
-    r"\b(?:write|writing|generate|generating|produce|producing|create|creating|"
-    r"replace|replacing|source|sourcing|solicit|soliciting|seed|seeding|collect|collecting)\b"
-    r"[^.!?\n]{0,60}\b(?:reviews?|testimonials?|ratings?|endorsements?|"
-    r"references?|case\s+studies)\b",
-    re.IGNORECASE,
-)
-
-
-@check("forbid_manufactured_evidence", BLOCKING)
-def forbid_manufactured_evidence(text, config):
-    """G-007. The same shipped email offered to 'replace those duplicates with
-    distinct, verified reviews' — FTC review-authenticity exposure."""
-    found = _hits(text, MANUFACTURED)
-    if not found:
-        return []
-    return [
-        Finding(
-            "forbid_manufactured_evidence",
-            BLOCKING,
-            "offers to produce or replace the evidence it is measuring",
-            evidence=sorted(set(found))[:5],
-        )
-    ]
-
 
 EMAIL = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.]{2,}\b")
 
@@ -533,49 +508,6 @@ def citations_resolve(text, config, context=None):
 
 # Nouns that give away which mechanism an intervention belongs to. Keyed to
 # config/mechanisms.json so the two stay legible together.
-MECHANISM_MARKERS = {
-    "website": (r"site|website|homepage|landing\s+page|rebuild|redesign|"
-                r"web\s+presence|page\s+speed"),
-    "messaging": r"campaign|sequence|drip|outbound|cadence|newsletter|email\s+blast",
-    "pricing": r"pricing|price\s+point|packaging|rate\s+card|retainer",
-    "ops-automation": r"automat\w+|workflow|integration|pipeline|crm|zapier",
-    "positioning": (r"claim|positioning|message|story|proof|wording|copy|"
-                    r"headline|narrative"),
-}
-
-_ACTION = (r"(?:we|i|our team|patrick)\s+(?:can|could|will|would|should|recommend\w*|"
-           r"propose|suggest)\s+[^.!?\n]{0,60}?"
-           r"\b(?:build|rebuild|redesign|rewrite|implement|launch|create|develop|fix|"
-           r"repair|migrate|automate|set\s+up|roll\s+out|deploy|add|introduce)\b"
-           r"[^.!?\n]{0,60}?")
-
-
-@check("forbid_other_mechanisms", BLOCKING)
-def forbid_other_mechanisms(text, config):
-    """An artifact may only act inside the mechanism that was selected for it.
-
-    Not the same as ``forbid_intervention_proposal``, which forbids ALL remedies
-    and belongs to the diagnosis stage. By the artifact stage a mechanism has
-    been chosen, so recommending action is the job -- recommending action from a
-    DIFFERENT mechanism is mechanism selection happening a second time, later,
-    without the gate. That is SF-03's pattern moved one stage downstream.
-    """
-    allowed = {m.lower() for m in config.get("allow", [])}
-    findings = []
-    for mechanism, markers in MECHANISM_MARKERS.items():
-        if mechanism in allowed:
-            continue
-        pattern = re.compile(_ACTION + r"\b(?:" + markers + r")\b", re.IGNORECASE)
-        found = _hits(text, pattern)
-        if found:
-            findings.append(Finding(
-                "forbid_other_mechanisms", BLOCKING,
-                f"recommends a {mechanism!r} intervention; this artifact is scoped to "
-                + (", ".join(sorted(allowed)) or "no mechanism")
-                + " and re-selecting here bypasses the mechanism-selection gate",
-                evidence=[h.strip()[:90] for h in sorted(set(found))[:3]]))
-    return findings
-
 
 # --- style checks (advisory) ----------------------------------------------
 HYPE = re.compile(r"\b(?:unlock|supercharge|game[- ]?changer|secret\s+weapon|10x|"
@@ -642,7 +574,25 @@ def forbid_emoji(text, config):
 
 
 # --- runner ---------------------------------------------------------------
-def run(text, declared, context=None):
+def resolve_check(name, base=None):
+    """Find a check by name: generic first, then any enabled domain pack.
+
+    Core owns the generic registry. A domain contributes its own, and they are
+    merged only on demand -- so the core never imports a domain, and a skill that
+    declares no domain can never reach a domain check.
+    """
+    if name in REGISTRY:
+        return REGISTRY[name]
+    from . import domains
+
+    contributed = domains.all_checks(base)
+    if name in contributed:
+        return contributed[name]
+    known = sorted(set(REGISTRY) | set(contributed))
+    raise CheckError(f"unknown check {name!r}; known checks: {', '.join(known)}")
+
+
+def run(text, declared, context=None, base=None):
     """Run a skill's declared ``output_checks`` against ``text``.
 
     ``context`` maps input names to the source text a run was given. Checks that
@@ -654,15 +604,11 @@ def run(text, declared, context=None):
         if isinstance(entry, str):
             entry = {"check": entry}
         name = entry.get("check")
-        if name not in REGISTRY:
-            raise CheckError(
-                f"unknown check {name!r}; known checks: {', '.join(sorted(REGISTRY))}"
-            )
+        function = resolve_check(name, base)
         config = {k: v for k, v in entry.items() if k != "check"}
         for key in ("sections", "phrases", "allowed", "sources", "absent_markers"):
             if isinstance(config.get(key), str):
                 config[key] = [p.strip() for p in config[key].split("|") if p.strip()]
-        function = REGISTRY[name]
         if "context" in function.__code__.co_varnames[:function.__code__.co_argcount]:
             findings.extend(function(text, config, context))
         else:

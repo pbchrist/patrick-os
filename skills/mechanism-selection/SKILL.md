@@ -3,6 +3,7 @@ name: mechanism-selection
 version: 1
 purpose: Extract a structured profile from a diagnosis so the deterministic selector can choose the intervention — or conclude that none is supported.
 task_class: mechanism-selection
+domain: commercial
 stage: mechanism-selection
 mechanism_agnostic: true
 investment_tier: note

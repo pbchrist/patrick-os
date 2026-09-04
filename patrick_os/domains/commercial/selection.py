@@ -16,7 +16,7 @@ only observe by running a model is a decision you cannot regression-test.
 
 from __future__ import annotations
 
-from . import pipeline
+from . import workflow as pipeline
 
 # Profile fields a precondition may reference. Anything else is a typo, and a
 # typo that silently evaluates false would disqualify a mechanism for no reason.

@@ -3,9 +3,6 @@ name: narrative-diagnosis
 version: 1
 purpose: Separate what a business's own material claims from what its evidence supports, and name the gap — without proposing any intervention.
 task_class: diagnosis
-stage: diagnosis
-mechanism_agnostic: true
-investment_tier: note
 channel: null
 project: null
 outputs: report

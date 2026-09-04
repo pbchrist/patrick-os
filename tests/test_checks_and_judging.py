@@ -23,7 +23,9 @@ SHIPPED = (
 
 class FactIntegrityTest(unittest.TestCase):
     def fire(self, name, text, config=None):
-        return checks.REGISTRY[name](text, config or {})
+        """Resolve through the registry AND enabled domain packs -- some checks
+        are contributed by a domain rather than owned by the core."""
+        return checks.resolve_check(name)(text, config or {})
 
     def test_the_shipped_sentence_is_caught(self):
         found = self.fire("forbid_perception_language", SHIPPED)

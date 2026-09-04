@@ -19,7 +19,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import decisions, feedback, judging, pipeline, results, retrieval, runner, selection, skills, testing, voice
+from . import decisions, domains, feedback, judging, retrieval, runner, skills, testing, voice
 from .router import TaskSpec, resolve
 from .router import table as route_table
 
@@ -54,7 +54,9 @@ def cmd_skills(args):
         for skill in found:
             problems = skill.validate()
             flag = "  " if not problems else "! "
-            print(f"{flag}{skill.slug.ljust(width)}  {skill.task_class:18} {skill.purpose}")
+            domain = f"[{skill.domain}]" if skill.domain else "[os]"
+            print(f"{flag}{skill.slug.ljust(width)}  {domain:12} {skill.task_class:18} "
+                  f"{skill.purpose}")
         if any(s.validate() for s in found):
             print("\n! = fails structural validation; run `patrick test` for detail")
         return 0
@@ -350,7 +352,12 @@ def cmd_decision(args):
 
 
 def cmd_select(args):
-    """Choose a mechanism from an extracted profile. Deterministic; calls nothing."""
+    """Choose a mechanism from an extracted profile. Deterministic; calls nothing.
+
+    A commercial-domain command. Core has no opinion about mechanisms.
+    """
+    from .domains.commercial import selection, workflow as pipeline
+
     raw = json.loads(_read(args.profile)) if args.profile else json.loads(args.json_profile)
     if isinstance(raw, dict) and "Profile" in raw:
         raw = raw["Profile"]
@@ -365,6 +372,9 @@ def cmd_select(args):
 
 
 def cmd_result(args):
+    """Commercial-domain outcome intake."""
+    from .domains.commercial import results
+
     if args.action == "record":
         entry = results.record(
             opportunity=args.opportunity, mechanism=args.mechanism, tier=args.tier,
@@ -482,8 +492,14 @@ def cmd_judges(args):
 
 
 def cmd_pipeline(args):
-    """Show how much of the commercial pipeline actually has a skill behind it."""
-    found = skills.list_skills(args.root)
+    """Coverage of the COMMERCIAL domain's workflow. Not a view of Patrick OS.
+
+    Patrick OS is the operating layer; this reports on one domain that runs on
+    top of it. `patrick skills list` is the OS-level view.
+    """
+    from .domains.commercial import workflow as pipeline
+
+    found = [s for s in skills.list_skills(args.root) if s.domain == "commercial"]
     registry = pipeline.load_mechanisms(base=args.root)
     report = pipeline.coverage(found, registry)
     if args.json:
@@ -668,18 +684,20 @@ def build_parser():
     p.add_argument("--supersedes")
     p.set_defaults(func=cmd_decision)
 
-    p = sub.add_parser("select", help="choose a mechanism from a profile; calls nothing")
+    p = sub.add_parser("select",
+                       help="[commercial domain] choose a mechanism; calls nothing")
     p.add_argument("--profile", help="file containing the profile JSON")
     p.add_argument("--json-profile", help="the profile JSON inline")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_select)
 
-    p = sub.add_parser("result", help="record what actually happened, and read it back")
+    p = sub.add_parser("result",
+                       help="[commercial domain] record an outcome, and read it back")
     p.add_argument("action", choices=["record", "list"])
     p.add_argument("--opportunity", help="what this result is about")
     p.add_argument("--mechanism")
     p.add_argument("--tier", default="note")
-    p.add_argument("--outcome", help=", ".join(results.OUTCOMES))
+    p.add_argument("--outcome", help="see `patrick result list`")
     p.add_argument("--evidence", help="what establishes this outcome")
     p.add_argument("--amount", help="money, if any changed hands")
     p.add_argument("--note")
@@ -699,7 +717,8 @@ def build_parser():
     p.add_argument("--no-probe", dest="probe", action="store_false")
     p.set_defaults(func=cmd_judges)
 
-    p = sub.add_parser("pipeline", help="show stage and mechanism coverage")
+    p = sub.add_parser("pipeline",
+                       help="[commercial domain] stage and mechanism coverage")
     p.add_argument("--verbose", "-v", action="store_true")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_pipeline)
@@ -742,8 +761,16 @@ def main(argv=None):
         return args.func(args)
     except (skills.SkillError, voice.VoiceError, feedback.FeedbackError,
             decisions.DecisionError, route_table.RouteTableError, runner.RunError,
-            judging.JudgeError, pipeline.PipelineError, selection.SelectionError,
-            results.ResultError, retrieval.RetrievalError) as error:
+            judging.JudgeError, retrieval.RetrievalError,
+            domains.DomainError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+    except (ValueError, RuntimeError) as error:
+        # Domain packs raise their own error types; core must not import them to
+        # name those types, so they are caught by their common bases.
+        if type(error).__name__ not in ("PipelineError", "SelectionError",
+                                        "ResultError"):
+            raise
         print(f"error: {error}", file=sys.stderr)
         return 2
     except FileNotFoundError as error:

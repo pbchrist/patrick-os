@@ -1,4 +1,47 @@
-# Architecture: the commercial pipeline
+# Architecture
+
+## Patrick OS is an operating layer
+
+Patrick OS makes Patrick's AI work smarter, more consistent, more reusable and
+more coordinated across projects. It holds six things centrally: persistent
+context and decision memory, reusable skills, model and tool routing,
+independent judgment and QA, feedback-driven learning from corrections and
+accepted outputs, and orchestration across distinct projects and agents.
+
+**It is not a lead-generation system.** Site Factory, the Opportunity Engine,
+recruiting, writing, research and fiction are consumers that run on top of it.
+
+### The layering
+
+```
+    consumers      site-factory   opportunity-engine   (fiction, research, ...)
+                          \             /
+    domain packs        patrick_os/domains/commercial
+                                 |
+    operating layer     skills · voice · routing · judging · feedback ·
+                        retrieval · decisions · orchestration
+```
+
+Core knows about skills, voice, routing, judging, feedback, retrieval and
+orchestration — concerns identical whether the work is recruiting, fiction or
+selling. It knows nothing about any of those subjects.
+
+### The leak this corrects
+
+`stage` was a required field on **every** skill, drawn from a commercial
+pipeline. A fiction skill could not validate: it was made to name a position in a
+sales workflow and declare which sales intervention it served. Mechanism
+selection, investment tiers and sales outcomes sat beside the router as though
+they were operating-system concerns. One consumer's vocabulary had become the
+operating system's.
+
+Four tests hold the boundary now: core imports no pack at load, no core module
+imports a pack at module level, no commercial check sits in the core registry,
+and every domain-less skill validates clean.
+
+# The commercial domain: pipeline and mechanisms
+
+*Everything below this line describes ONE domain pack, not Patrick OS.*
 
 **Status:** the shape is declared and enforced. The engine is not built, on
 purpose. See `decisions/0006`.

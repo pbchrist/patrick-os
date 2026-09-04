@@ -20,8 +20,8 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 
-from . import pipeline
-from .skills import root
+from . import workflow as pipeline
+from ...skills import root
 
 OUTCOMES = (
     "no_reply",      # sent, nothing came back. The most common real outcome.

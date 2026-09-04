@@ -6,11 +6,8 @@ task_class: research.mine
 channel: reddit
 outputs: report
 dry_run_default: true
-stage: signal
 retrieval_source: reddit
 retrieval_query: "Find threads and comments in reddit.com/r/{{ subreddit }} from roughly the last {{ window_days }} days that bear on this claim, both for and against it: {{ pain_hypothesis }}. Search first. Return at least 12 items if they exist, each with the original reddit.com permalink, the author handle, the date, and the commenter's own words verbatim. Include items that CONTRADICT the claim — they matter as much as ones that support it."
-mechanism_agnostic: true
-investment_tier: note
 sends: false
 inputs:
   - name: subreddit

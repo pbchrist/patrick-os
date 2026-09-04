@@ -4,9 +4,13 @@ the only or primary commercial workflow.
 These tests exist to fail if that assumption creeps back in.
 """
 
+import json
+import subprocess
+import sys
 import unittest
 
-from patrick_os import feedback, pipeline, skills, voice
+from patrick_os import feedback, skills, voice
+from patrick_os.domains.commercial import workflow as pipeline
 
 from tests.support import REPO, TempRootTest
 
@@ -33,7 +37,7 @@ class VocabularyTest(unittest.TestCase):
 
 class MechanismRegistryTest(unittest.TestCase):
     def setUp(self):
-        self.registry = pipeline.load_mechanisms(REPO / "config" / "mechanisms.json")
+        self.registry = pipeline.load_mechanisms(REPO / "config" / "domains" / "commercial-mechanisms.json")
 
     def test_non_website_mechanisms_are_declared(self):
         """The whole point of the registry. If website is the only row, the
@@ -69,39 +73,78 @@ class SkillPositionTest(unittest.TestCase):
     def setUp(self):
         self.skills = skills.list_skills(REPO)
 
-    def test_every_skill_declares_a_stage(self):
+    def test_only_commercial_skills_carry_commercial_vocabulary(self):
+        """The scope correction, as a test. `stage` was once required of every
+        skill, so a fiction skill could not validate -- it was made to name a
+        position in a sales pipeline. Now it applies only inside the domain that
+        defines it."""
         for skill in self.skills:
-            self.assertIn(skill.stage, pipeline.STAGES, f"{skill.slug} has no valid stage")
+            if skill.domain == "commercial":
+                self.assertIn(skill.stage, pipeline.STAGES,
+                              f"{skill.slug} is commercial but has no valid stage")
+            else:
+                self.assertIsNone(skill.stage,
+                                  f"{skill.slug} declares no domain yet carries a stage")
 
-    def test_every_skill_declares_mechanisms_or_says_it_is_agnostic(self):
-        """A skill that says nothing is assumed to serve the only mechanism
-        anybody built. That assumption is the thing being designed out."""
+    def test_a_skill_in_no_domain_needs_none_of_it(self):
+        """A plain OS skill is valid with no domain vocabulary at all."""
+        generic = [s for s in self.skills if not s.domain]
+        self.assertTrue(generic, "every skill became domain-bound; the core re-absorbed one")
+        for skill in generic:
+            self.assertEqual(skill.validate(), [], f"{skill.slug} is not valid")
+
+    def test_commercial_skills_declare_mechanisms_or_say_they_are_agnostic(self):
+        """Inside the commercial domain a skill that says nothing is assumed to
+        serve the only mechanism anybody built. Outside it, the question is
+        meaningless and is never asked."""
         for skill in self.skills:
-            self.assertTrue(skill.mechanisms or skill.mechanism_agnostic,
-                            f"{skill.slug} declares neither")
+            if skill.domain == "commercial":
+                self.assertTrue(skill.mechanisms or skill.mechanism_agnostic,
+                                f"{skill.slug} declares neither")
 
     def test_only_the_site_factory_skills_are_bound_to_the_website_mechanism(self):
         bound = sorted(s.slug for s in self.skills if "website" in s.mechanisms)
         self.assertEqual(bound, ["site-factory-email", "site-factory-prospect"])
 
-    def test_the_general_skills_are_not_bound_to_any_mechanism(self):
-        for slug in ("reddit-mine", "linkedin-reply", "recruiter-outreach"):
+    def test_the_general_skills_belong_to_no_domain_at_all(self):
+        """These are OS skills. They were previously forced to declare
+        mechanism_agnostic: true, which is a commercial answer to a commercial
+        question they should never have been asked."""
+        for slug in ("reddit-mine", "linkedin-reply", "recruiter-outreach",
+                     "narrative-diagnosis", "weekly-close"):
             skill = skills.load_skill(slug, REPO)
-            self.assertTrue(skill.mechanism_agnostic, f"{slug} became mechanism-bound")
+            self.assertIsNone(skill.domain, f"{slug} became domain-bound")
+            self.assertFalse(skill.mechanisms)
 
 
 class ValidationTest(TempRootTest):
-    def test_a_skill_with_no_stage_fails_validation(self):
+    def test_a_commercial_skill_with_no_stage_fails_validation(self):
         directory = self.write_skill("nostage")
-        text = (directory / "SKILL.md").read_text().replace("stage: signal\n", "")
+        text = (directory / "SKILL.md").read_text().replace(
+            "task_class: research", "task_class: research\ndomain: commercial\n"
+            "mechanism_agnostic: true")
         (directory / "SKILL.md").write_text(text)
         problems = skills.load_skill("nostage", self.root).validate()
-        self.assertTrue(any("missing front-matter field: stage" in p for p in problems))
+        self.assertTrue(any("must declare a stage" in p for p in problems), problems)
+
+    def test_a_skill_with_no_domain_and_no_stage_is_perfectly_valid(self):
+        self.write_skill("plain")
+        self.assertEqual(skills.load_skill("plain", self.root).validate(), [])
+
+    def test_an_unknown_domain_is_reported_rather_than_ignored(self):
+        directory = self.write_skill("weird")
+        text = (directory / "SKILL.md").read_text().replace(
+            "task_class: research", "task_class: research\ndomain: astrology")
+        (directory / "SKILL.md").write_text(text)
+        problems = skills.load_skill("weird", self.root).validate()
+        self.assertTrue(any("no domain pack" in p for p in problems), problems)
 
     def test_a_skill_naming_an_undeclared_mechanism_fails(self):
         directory = self.write_skill("badmech")
         text = (directory / "SKILL.md").read_text().replace(
-            "mechanism_agnostic: true", "mechanisms:\n  - telepathy")
+            "task_class: research",
+            "task_class: research\ndomain: commercial\nstage: qualification\n"
+            "mechanisms:\n  - telepathy")
         (directory / "SKILL.md").write_text(text)
         problems = skills.load_skill("badmech", self.root).validate()
         self.assertTrue(any("unknown mechanism" in p for p in problems))
@@ -109,7 +152,9 @@ class ValidationTest(TempRootTest):
     def test_declaring_both_mechanisms_and_agnostic_fails(self):
         directory = self.write_skill("both")
         text = (directory / "SKILL.md").read_text().replace(
-            "mechanism_agnostic: true", "mechanism_agnostic: true\nmechanisms:\n  - website")
+            "task_class: research",
+            "task_class: research\ndomain: commercial\nstage: qualification\n"
+            "mechanism_agnostic: true\nmechanisms:\n  - website")
         (directory / "SKILL.md").write_text(text)
         self.assertTrue(any("pick one" in p
                             for p in skills.load_skill("both", self.root).validate()))
@@ -120,7 +165,7 @@ class CoverageTest(unittest.TestCase):
         """The gap must stay visible. This asserts the mechanism works, not a
         particular snapshot of it -- pinning the empty list would mean every new
         skill breaks a test that is not about that skill."""
-        registry = pipeline.load_mechanisms(REPO / "config" / "mechanisms.json")
+        registry = pipeline.load_mechanisms(REPO / "config" / "domains" / "commercial-mechanisms.json")
         report = pipeline.coverage(skills.list_skills(REPO), registry)
         covered = [s for s in pipeline.STAGES if report["by_stage"][s]]
         empty = [s for s in pipeline.STAGES if not report["by_stage"][s]]
@@ -135,24 +180,29 @@ class CoverageTest(unittest.TestCase):
         """Recording what happened is data intake, not a model task -- a model
         should never decide what an outcome was. Showing it as an empty stage
         would be a false gap; showing a skill there would be a false claim."""
-        registry = pipeline.load_mechanisms(REPO / "config" / "mechanisms.json")
+        registry = pipeline.load_mechanisms(REPO / "config" / "domains" / "commercial-mechanisms.json")
         report = pipeline.coverage(skills.list_skills(REPO), registry)
         self.assertEqual(report["by_stage"]["result"], [])
         self.assertIn("result", report["tooling"])
         self.assertIn("result", report["covered"])
         self.assertNotIn("result", report["empty"])
 
-    def test_every_stage_is_covered_by_a_skill_or_named_tooling(self):
-        registry = pipeline.load_mechanisms(REPO / "config" / "mechanisms.json")
-        report = pipeline.coverage(skills.list_skills(REPO), registry)
-        self.assertEqual(report["empty"], [],
-                         "a stage with neither a skill nor tooling is an untracked gap")
+    def test_coverage_counts_only_skills_inside_the_domain(self):
+        """Coverage is a view of ONE domain, not of Patrick OS. An OS skill that
+        happens to do research must not be counted as commercial signal work."""
+        registry = pipeline.load_mechanisms(
+            REPO / "config" / "domains" / "commercial-mechanisms.json")
+        commercial = [s for s in skills.list_skills(REPO) if s.domain == "commercial"]
+        report = pipeline.coverage(commercial, registry)
+        for stage, owners in report["by_stage"].items():
+            for slug in owners:
+                self.assertEqual(skills.load_skill(slug, REPO).domain, "commercial")
 
     def test_coverage_reports_mechanisms_with_no_executor(self):
         """Asserts the reporting works, not a snapshot of which mechanisms are
         covered -- that changes every time a skill lands, and pinning it would
         make unrelated work fail this test."""
-        registry = pipeline.load_mechanisms(REPO / "config" / "mechanisms.json")
+        registry = pipeline.load_mechanisms(REPO / "config" / "domains" / "commercial-mechanisms.json")
         report = pipeline.coverage(skills.list_skills(REPO), registry)
         uncovered = [k for k in registry.keys() if not report["by_mechanism"].get(k)]
         self.assertTrue(uncovered, "some mechanism should still lack a skill")
@@ -167,7 +217,7 @@ class CoverageTest(unittest.TestCase):
         """The registry's executors list and the skills' mechanisms list are two
         halves of one fact. They drifting apart is how positioning ended up
         credited to a mechanism-agnostic skill."""
-        registry = pipeline.load_mechanisms(REPO / "config" / "mechanisms.json")
+        registry = pipeline.load_mechanisms(REPO / "config" / "domains" / "commercial-mechanisms.json")
         for key in registry.keys():
             for slug in registry[key].executors:
                 if slug in {s.slug for s in skills.list_skills(REPO)}:
@@ -233,3 +283,78 @@ class StrategyLayerTest(TempRootTest):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LayeringTest(unittest.TestCase):
+    """Patrick OS is the operating layer. Domains run on top of it.
+
+    The rule these tests hold: core knows about skills, voice, routing, judging,
+    feedback, retrieval and orchestration. It knows nothing about selling,
+    recruiting, fiction, or research. When that boundary broke, `stage` became a
+    required field on every skill and a fiction skill could not validate.
+    """
+
+    CORE = ["frontmatter", "skills", "voice", "projects", "runner", "feedback",
+            "judging", "checks", "testing", "decisions", "retrieval", "cli"]
+
+    def test_no_core_module_imports_a_domain_pack_at_load(self):
+        """Run in a subprocess: sys.modules is global, so another test importing
+        a pack would make this pass or fail for reasons unrelated to the core.
+
+        The domain LOADER (patrick_os.domains) is core infrastructure, the same
+        way the adapter registry is. What must never load is a pack.
+        """
+        script = (
+            "import importlib, sys\n"
+            f"for n in {self.CORE!r}: importlib.import_module('patrick_os.' + n)\n"
+            "packs = [m for m in sys.modules "
+            "if m.startswith('patrick_os.domains.')]\n"
+            "print(','.join(sorted(packs)))\n"
+        )
+        completed = subprocess.run([sys.executable, "-c", script], cwd=str(REPO),
+                                   text=True, capture_output=True, check=True)
+        leaked = [m for m in completed.stdout.strip().split(",") if m]
+        self.assertEqual(leaked, [], f"core import pulled in domain packs: {leaked}")
+
+    def test_no_core_module_mentions_a_domain_pack_at_module_level(self):
+        """Lazy imports inside functions are fine and intended; a module-level
+        `from .domains...` would make the dependency structural."""
+        for name in self.CORE:
+            source = (REPO / "patrick_os" / f"{name}.py").read_text()
+            for line in source.split("\n"):
+                if not line.startswith(("import ", "from ")):
+                    continue
+                if "domains." in line or "domains import" in line:
+                    self.fail(f"{name}.py imports a domain PACK at module level: {line}")
+
+    def test_the_core_check_registry_holds_no_commercial_check(self):
+        from patrick_os import checks
+        from patrick_os.domains import commercial
+        self.assertTrue(commercial.CHECKS)
+        for name in commercial.CHECKS:
+            self.assertNotIn(name, checks.REGISTRY,
+                             f"{name} is a commercial check sitting in the core registry")
+
+    def test_a_domain_check_still_resolves_for_a_skill_that_declares_it(self):
+        from patrick_os import checks
+        self.assertTrue(callable(checks.resolve_check("forbid_manufactured_evidence")))
+
+    def test_commercial_config_lives_under_the_domain_not_beside_the_router(self):
+        self.assertFalse((REPO / "config" / "mechanisms.json").exists(),
+                         "mechanisms.json is domain config and must not sit in config/ root")
+        self.assertTrue((REPO / "config" / "domains" / "commercial-mechanisms.json").is_file())
+
+    def test_site_factory_is_a_consumer_inside_a_domain_not_the_domain(self):
+        registry = json.loads((REPO / "config" / "domains.json").read_text())
+        consumers = registry["domains"]["commercial"]["consumers"]
+        self.assertIn("site-factory", consumers)
+        self.assertGreater(len(consumers), 1,
+                           "a domain with one consumer is that consumer wearing a hat")
+
+    def test_the_os_serves_skills_that_belong_to_no_domain(self):
+        """The acceptance test for the scope correction: a skill about fiction,
+        research or writing must be first-class without touching commerce."""
+        generic = [s for s in skills.list_skills(REPO) if not s.domain]
+        self.assertGreaterEqual(len(generic), 4)
+        for skill in generic:
+            self.assertEqual(skill.validate(), [])

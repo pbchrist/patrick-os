@@ -116,7 +116,7 @@ def check_behavioral(skill, fixture):
     from . import checks
 
     findings = checks.run(fixture["output"], skill.output_checks,
-                          fixture.get("context"))
+                          fixture.get("context"), base=getattr(skill, "_base", None))
     verdict = checks.verdict(findings)
     failures = []
     if verdict != fixture["expect_verdict"]:

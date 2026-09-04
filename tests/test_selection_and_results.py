@@ -8,13 +8,15 @@ rather than the model.
 
 import unittest
 
-from patrick_os import pipeline, results, selection
+from patrick_os.domains.commercial import results
+from patrick_os.domains.commercial import selection
+from patrick_os.domains.commercial import workflow as pipeline
 
 from tests.support import REPO, TempRootTest
 
 
 def registry():
-    return pipeline.load_mechanisms(REPO / "config" / "mechanisms.json")
+    return pipeline.load_mechanisms(REPO / "config" / "domains" / "commercial-mechanisms.json")
 
 
 class SelectorPurityTest(unittest.TestCase):

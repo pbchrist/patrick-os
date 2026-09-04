@@ -15,8 +15,6 @@ name: {slug}
 version: 1
 purpose: test skill
 task_class: {task_class}
-stage: {stage}
-mechanism_agnostic: true
 channel: {channel}
 project: {project}
 outputs: report
@@ -63,17 +61,19 @@ class TempRootTest(unittest.TestCase):
                     "strategy/mechanisms", "strategy/segments", "strategy/projects",
                     "projects", "feedback/inbox", "decisions", "config", "runs"):
             (self.root / sub).mkdir(parents=True, exist_ok=True)
-        for name in ("routes.json", "mechanisms.json"):
+        for name in ("routes.json", "domains.json", "retrieval.json"):
             shutil.copy(REPO / "config" / name, self.root / "config" / name)
+        (self.root / "config" / "domains").mkdir(exist_ok=True)
+        shutil.copy(REPO / "config" / "domains" / "commercial-mechanisms.json",
+                    self.root / "config" / "domains" / "commercial-mechanisms.json")
 
     def write_skill(self, slug, *, task_class="research", channel="null",
-                    project="null", stage="signal", fixtures=None):
+                    project="null", stage=None, fixtures=None):
         directory = self.root / "skills" / slug
         (directory / "fixtures").mkdir(parents=True, exist_ok=True)
         (directory / "SKILL.md").write_text(
             MINIMAL_SKILL.format(
-                slug=slug, task_class=task_class, channel=channel, project=project,
-                stage=stage
+                slug=slug, task_class=task_class, channel=channel, project=project
             ),
             encoding="utf-8",
         )

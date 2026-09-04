@@ -35,8 +35,8 @@ class IndependenceError(JudgeError):
     """The judge and the writer are the same provider. Refuse rather than measure."""
 
 
-def deterministic(skill, output, context=None):
-    findings = checks.run(output, skill.output_checks, context)
+def deterministic(skill, output, context=None, base=None):
+    findings = checks.run(output, skill.output_checks, context, base=base)
     return {
         "verdict": checks.verdict(findings),
         "blocking": [f.as_dict() for f in findings if f.severity == checks.BLOCKING],
@@ -176,7 +176,7 @@ def judge(skill, output, *, writer_provider=None, base=None, table=None,
           transport=None, execute=False, context=None):
     """Run deterministic checks, then optionally an independent model judge."""
     result = {"skill": skill.slug,
-              "deterministic": deterministic(skill, output, context),
+              "deterministic": deterministic(skill, output, context, base),
               "context_inputs": sorted(context or {})}
     if not execute:
         result["model_judge"] = None

@@ -7,6 +7,7 @@ channel: email
 project: site-factory
 outputs: draft
 dry_run_default: true
+domain: commercial
 stage: outreach
 mechanisms:
   - website

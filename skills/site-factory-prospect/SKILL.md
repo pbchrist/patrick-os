@@ -7,6 +7,7 @@ channel: null
 project: site-factory
 outputs: report
 dry_run_default: true
+domain: commercial
 stage: qualification
 mechanisms:
   - website

@@ -129,11 +129,24 @@ class Skill:
     def section(self, title):
         return self.sections().get(title, "")
 
-    # -- pipeline position -------------------------------------------------
+    # -- domain -------------------------------------------------------------
+    @property
+    def domain(self):
+        """Which KIND of work this skill belongs to, if any.
+
+        Optional by design. Most OS skills belong to no domain; only skills doing
+        subject-specific work claim one, and only then do that domain's rules
+        apply.
+        """
+        return self.meta.get("domain")
+
     @property
     def stage(self):
-        """Where in the commercial pipeline this sits. Separate from task_class,
-        which is a routing concern."""
+        """Position within the declaring domain's workflow, if it has one.
+
+        Core reads this and interprets nothing. What the value may be, and
+        whether it is required, is the domain's business.
+        """
         return self.meta.get("stage")
 
     @property
@@ -237,70 +250,23 @@ class Skill:
             raise SkillError(f"{self.slug}: " + "; ".join(problems))
         return bound
 
-    def _pipeline_problems(self):
-        """A skill must say where in the commercial pipeline it sits.
+    def _domain_problems(self):
+        """Ask the skill's declared domain whether it is well-formed.
 
-        Not decoration: without it, nothing can tell that the two Site Factory
-        skills cover two of eight stages and one of six mechanisms, and the
-        system quietly behaves as though they are the whole business.
+        A skill that declares no domain is a plain OS skill and gets no domain
+        rules at all. That is the point: this method used to require every skill
+        to name a stage in a commercial pipeline and state which sales
+        intervention it served, so a fiction skill could not validate. One
+        consumer's vocabulary had become the operating system's.
         """
-        from . import pipeline
+        if not self.domain:
+            return []
+        from . import domains
 
-        problems = []
-        if not self.stage:
-            problems.append(
-                "missing front-matter field: stage (one of: "
-                + ", ".join(pipeline.STAGES) + ")"
-            )
-        elif self.stage not in pipeline.STAGES:
-            problems.append(
-                f"unknown stage {self.stage!r}; expected one of: "
-                + ", ".join(pipeline.STAGES)
-            )
-        if self.investment_tier and self.investment_tier not in pipeline.TIERS:
-            problems.append(
-                f"unknown investment_tier {self.investment_tier!r}; expected one of: "
-                + ", ".join(pipeline.TIERS)
-            )
-        if self.mechanisms and self.mechanism_agnostic:
-            problems.append(
-                "declares both mechanisms and mechanism_agnostic: true; pick one"
-            )
-        if not self.mechanisms and not self.mechanism_agnostic:
-            problems.append(
-                "declares neither mechanisms nor mechanism_agnostic: true -- a skill "
-                "that does not say which interventions it serves is assumed to serve "
-                "the only one anybody built, which is the failure this field exists "
-                "to prevent"
-            )
-        if self.mechanisms:
-            try:
-                registry = pipeline.load_mechanisms(base=self._base)
-            except pipeline.PipelineError as error:
-                problems.append(str(error))
-            else:
-                for key in self.mechanisms:
-                    if key not in registry:
-                        problems.append(
-                            f"unknown mechanism {key!r}; declared in "
-                            f"config/mechanisms.json: {', '.join(registry.keys())}"
-                        )
-        return problems
-
-    def bind_partial(self, provided):
-        """Bind what is present, ignoring absent required inputs.
-
-        Used to interpolate a retrieval query before the retrieved material -- a
-        required input -- exists.
-        """
-        bound = {}
-        for spec in self.inputs:
-            key = spec.get("name")
-            if key in provided:
-                bound[key] = provided[key]
-            elif "default" in spec:
-                bound[key] = spec["default"]
-        return bound
+        try:
+            return domains.validate_skill(self.domain, self)
+        except domains.DomainError as error:
+            return [str(error)]
 
     def validate(self):
         """Return a list of problem strings. Empty list means the skill is well-formed."""
@@ -325,7 +291,7 @@ class Skill:
             )
         if not self.dry_run_default:
             problems.append("dry_run_default must be true; dry run is the default everywhere")
-        problems.extend(self._pipeline_problems())
+        problems.extend(self._domain_problems())
         if not self.fixtures():
             problems.append("no regression fixtures under fixtures/")
         if self.output_checks:
@@ -333,7 +299,9 @@ class Skill:
 
             for entry in self.output_checks:
                 name = entry.get("check") if isinstance(entry, dict) else entry
-                if name not in checks_module.REGISTRY:
+                try:
+                    checks_module.resolve_check(name, self._base)
+                except checks_module.CheckError:
                     problems.append(f"declares unknown output check: {name}")
             if not self.behavioral_fixtures():
                 problems.append(

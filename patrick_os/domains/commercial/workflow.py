@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import json
 
-from .skills import root
+from ...skills import root
 
 # --- stages ---------------------------------------------------------------
 # Ordered. A stage may only consume the output of a stage at or before it.
@@ -153,7 +153,7 @@ class MechanismRegistry:
 
 
 def registry_path(base=None):
-    return root(base) / "config" / "mechanisms.json"
+    return root(base) / "config" / "domains" / "commercial-mechanisms.json"
 
 
 def load_mechanisms(path=None, base=None):
