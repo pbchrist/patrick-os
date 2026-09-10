@@ -213,13 +213,3 @@ This runs the skill's deterministic `output_checks` offline.
 2. The judge prompt is built from the skill's criteria and contains no exemplar output.
 
 Verdicts are `pass`, `repair`, `reject`, and `escalate`. `escalate` is intentionally distinct from `reject`: requiring a human decision does not mean the work is bad.
-
-## Relationship to Hermes and Site Factory
-
-Patrick OS does not own either system.
-
-Hermes is a provider Patrick OS can call. Site Factory is a separate project whose verified failures and constraints can be consumed by Patrick OS as facts and regression cases. Patrick OS writes nothing into `~/.hermes/`, `~/.claude/skills/`, or `pbchrist/hermes-projects` as part of normal operation.
-
-The separation is deliberate:
-
-**Workers can change. Projects can change. The control layer should preserve what has been learned across both.**
