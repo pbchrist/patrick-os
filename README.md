@@ -1,16 +1,99 @@
 # Patrick OS
 
-Reusable procedural infrastructure for repeated work.
+**The canonical failing test in this repository is an email my own system sent.**
 
-The rule this repository exists to enforce: **do not solve a recurring task by
-writing a larger prompt.** Write down the procedure, the voice, the facts, and
-the routing once, version them, test them, and let any model execute against
-them.
+It scored PASS. 90.0. Evidence fidelity 5 out of 5. It contained the sentence
+*"To a new visitor, that looks like a copy-paste error rather than a full roster
+of happy clients"* — a claim about the mental state of a person nobody surveyed —
+and it offered to replace a business's duplicated reviews with "distinct,
+verified reviews," which is offering to manufacture the evidence you are being
+paid to measure.
+
+Three separate prompts in that codebase forbade exactly this. The model judge
+scored it perfect anyway.
+
+That email is now `skills/site-factory-email/fixtures/behavioral/shipped-sunrise-email.json`,
+and every commit has to prove it still gets caught.
+
+That is what this repository is. Not a framework. A set of rules that exist
+because something specific went wrong, each one carrying the receipt.
+
+---
+
+## The rule this repository exists to enforce
+
+**Do not solve a recurring task by writing a larger prompt.**
+
+A prohibition stated only inside a prompt is not enforcement. It is a wish. Write
+down the procedure, the voice, the facts, and the routing once; version them;
+test them; let any model execute against them. Then check the output with code
+that cannot be talked out of its finding.
 
 Patrick OS is model-agnostic by construction. No vendor SDK is imported at module
 load. Every provider — a local Qwen server, Hermes, Anthropic, OpenAI — is a row
 in `config/routes.json`, and routing is a pure function that resolves with no
 keys and no network. Claude is a worker inside this system, not the system.
+
+## What is actually true right now
+
+Stated plainly, because the whole point of the thing is refusing to overclaim:
+
+- **300 checks pass, 0 fail.** `./patrick test`. No install, no virtualenv, no
+  dependencies, Python 3.9+. The suite is offline and runs no model.
+- **Nothing in v1 sends anything, anywhere.** Not email, not a post, not a
+  webhook. There is no send path in the codebase to disable. See `decisions/0004`.
+- **The voice layer is scaffolding, not a finished voice model.** Its rules were
+  derived from two documents. A real voice model needs a corpus of actual
+  outputs, edits, and rejections. Every rule carries provenance so it can be
+  traced, revised, or retired when that corpus exists.
+- **This has not made any money and no evidence says anyone else wants it.**
+  It is infrastructure for one person's work that happens to be legible to
+  others. `projects/` records that verdict for every project it tracks, in those
+  words, on purpose.
+
+If you came here for a growth-hack framework, the vocabulary list in
+`voice/global.md` bans "unlock", "supercharge", "game-changer", "secret weapon",
+and "10x", and a check enforces it. You will not enjoy this.
+
+## The three failures that shaped the design
+
+Every real rule here has a receipt. These three are the load-bearing ones.
+
+**A judge that shares a model with the writer measures nothing.**
+Measured, not assumed: when a calibration example leaked into the judge prompt,
+the single passing output scored **0.590** trigram similarity to that example,
+against **0.015–0.081** for the four failures. The judge then cited "the
+rhetorical structure of the positive calibration" as its standard. It was
+grading recall of the example. So: the judge provider must differ from the writer
+provider or Patrick OS refuses to judge at all, and the judge prompt is built
+from the skill's own criteria and contains no exemplar output.
+
+**A style lint that can eliminate will eliminate the truth.**
+A quality filter deleted the two most evidence-rich candidates over the word
+"metadata". Checks now come in two severities and the line between them is
+absolute: **blocking** is fact integrity — an unmeasured claim, a
+manufactured-evidence offer, a leaked address, a missing citation — and kills an
+output. **Advisory** is style, and annotates for repair. Advisory can never
+eliminate.
+
+**Fluency is not evidence of correctness.**
+The overreach quoted at the top of this file was the best-written thing the
+system produced. That is precisely why it was dangerous, and why no model score
+is permitted to be the last word on fact integrity.
+
+## Learning that resists its own enthusiasm
+
+Corrections are captured, but a correction seen **once** is local and never
+becomes a rule. Scope escalates only on repetition across contexts — same skill,
+then project, then channel, then global. Edits touching only names, numbers,
+dates, or URLs are excluded from counting entirely, so ten name fixes never sum
+to one rule. Promotion runs the regression suite and restores the voice file
+byte-for-byte if it fails.
+
+Three layers, and one of them is deliberately a dead end: `output` lessons
+promote into `voice/`; `strategy` lessons promote into `strategy/` and require
+evidence; `workflow` lessons are **refused** for promotion, because this system
+rewrites rules, not procedures.
 
 ## What Patrick OS is
 
@@ -51,22 +134,6 @@ module imports a pack.
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and `decisions/0006`. The
 Opportunity Engine is deliberately **not** built yet.
 
-## Status
-
-v0.1.0 — spine complete, five skills, 116 checks passing.
-
-**The voice layer is scaffolding, not a finished voice model.** See
-[`voice/README.md`](voice/README.md). The rules currently in `voice/` were
-derived from two documents; a real voice model needs a corpus of Patrick's actual
-outputs, edits, and rejections. Every rule carries provenance so it can be traced
-back, revised, or retired when that corpus arrives.
-
-**The regression suite has two layers.** Structural fixtures prove a work order
-carries the right rules and routes to the right provider. Behavioral fixtures
-prove a specific *produced output* is caught or passed — and the canonical
-negative fixture is the email Site Factory actually shipped at PASS / 90.0 /
-evidence_fidelity 5/5. Behavioral fixtures run offline, with no model.
-
 ## Quick start
 
 No install. No virtualenv. No dependencies. Python 3.9 or newer.
@@ -83,7 +150,7 @@ No install. No virtualenv. No dependencies. Python 3.9 or newer.
 ./patrick select --profile p.json      # choose a mechanism; deterministic
 ./patrick result record --outcome no_reply --evidence '...'  # what happened
 ./patrick voice --strategy    # rules about what is worth pursuing
-./patrick test                # 267 checks
+./patrick test                # 300 checks, offline
 ```
 
 `patrick run` is a dry run: it composes the work order and resolves the route,
@@ -121,17 +188,6 @@ project facts ─────┘                                              �
                                             patrick feedback promote ──> one voice rule
                                                                           + changelog
 ```
-
-Feedback has three layers. `output` lessons (how it reads) promote into `voice/`;
-`strategy` lessons (what is worth pursuing) promote into `strategy/` and require
-evidence; `workflow` lessons are refused for promotion, because Patrick OS
-rewrites rules, not procedures.
-
-A correction seen **once** is local and never becomes a rule. Scope escalates on
-repetition across contexts — same skill, then project, then channel, then global.
-Edits that touch only names, numbers, dates, or URLs are excluded from counting
-entirely, so ten name corrections never sum to one rule. Promotion runs the
-regression suite and restores the voice file byte-for-byte if it fails.
 
 ## Model routing
 
@@ -181,8 +237,7 @@ straight from Site Factory finding SF-08:
 - **blocking** — fact integrity. An unmeasured claim, a manufactured-evidence
   offer, a leaked address, a missing citation. These kill an output.
 - **advisory** — style. Hype register, an opener, length. These annotate for
-  repair and never eliminate. SF-08 verified that a style-eliminating lint
-  deleted the two evidence-richest candidates over the word "metadata".
+  repair and never eliminate — for the reason recorded above.
 
 `--execute` adds an independent model judge. Two properties are enforced in code,
 not remembered:
@@ -190,10 +245,7 @@ not remembered:
 1. The judge provider must differ from the writer provider, or Patrick OS refuses
    to judge at all.
 2. The judge prompt is built from the skill's own criteria and contains **no
-   exemplar output**. SF-07 measured what happens otherwise: the one passing
-   output scored 0.590 trigram similarity to the calibration example against
-   0.015–0.081 for the four failures, and the judge cited "the rhetorical
-   structure of the positive calibration" as its standard.
+   exemplar output** — the trigram measurement above is what happens otherwise.
 
 Verdicts: `pass`, `repair`, `reject`, `escalate` — the last is separate on
 purpose, because "a human must decide" is not the same as "this is bad".
