@@ -1,6 +1,6 @@
 {
   "name": "shipped-sunrise-email",
-  "provenance": "The email Site Factory actually produced and certified: PASS, score 90.0, evidence_fidelity 5/5. Quoted from the 2026-09-01 adversarial teardown, finding 4. This is the canonical negative fixture -- if Patrick OS ever stops blocking it, the system has regressed to the state the teardown found.",
+  "provenance": "The email Site Factory actually produced and certified: PASS, score 90.0, evidence_fidelity 5/5. Quoted from the 2026-09-01 adversarial teardown, finding 4. This is the canonical negative fixture -- if Patrick OS ever stops blocking it, the system has regressed to the state the teardown found. Business and reviewer names are pseudonyms; the wording, structure and scores are verbatim from the real output. Patrick OS is an operating layer and holds no prospect identities (decision 0009).",
   "expect_verdict": "blocked",
   "expect_defects": [
     "forbid_perception_language",
