@@ -47,6 +47,7 @@ output_checks:
     sections: Supports|Contradicts|Adjacent
   - check: counts_are_numeric
   - check: forbid_perception_language
+  - check: forbid_unmeasured_consequence
     exempt_sections: Competing readings|Competing Readings
   - check: forbid_hype
 ---

@@ -35,6 +35,7 @@ output_checks:
     section: Draft
   - check: forbid_hype
   - check: forbid_perception_language
+  - check: forbid_unmeasured_consequence
 ---
 
 # linkedin-reply

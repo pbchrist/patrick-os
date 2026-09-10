@@ -1,0 +1,9 @@
+{
+  "name": "perception-reworded",
+  "provenance": "Written 2026-09-09 to test whether forbid_perception_language generalises or only recognises the sentence it was built from. It did not generalise: this passed CLEAN until the bare-noun branch was widened. Same defect as shipped-sunrise-email, different words.",
+  "expect_verdict": "blocked",
+  "expect_defects": [
+    "forbid_perception_language"
+  ],
+  "output": "Identity: medium (2 name tokens + footer phone match; no schema.org name on page)\nFetch status: ok\n\nSubject: The same review appears three times on your homepage\n\nBody:\nThe testimonial carousel on your homepage shows the review card reading \"Dana Reyes\" three times in a row. Most people landing on that page will walk away assuming you have exactly one happy customer. I do a $500 Narrative Decision Audit that works through a site's claims this way -- worth twenty minutes on a call?\n\nPatrick\n\nClaim table\n| Claim | Source in prospect_record |\n| --- | --- |\n| \"Dana Reyes\" card appears three times | Observations, line 1 |\n| section displays one reviewer | derived, mechanical |\n\nCompliance status: NOT SATISFIED -- no postal address, no unsubscribe URL, no verified sending domain.\nSend status: NOT SENDABLE (Gate 2 NO-GO).\n"
+}

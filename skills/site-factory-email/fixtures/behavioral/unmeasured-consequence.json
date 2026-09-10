@@ -1,0 +1,9 @@
+{
+  "name": "unmeasured-consequence",
+  "provenance": "Written 2026-09-09. G-002 forbids claiming customer behaviour, perception OR commercial consequence that was not measured. Only the perception clause was implemented, so this passed CLEAN: nobody counted the calls.",
+  "expect_verdict": "blocked",
+  "expect_defects": [
+    "forbid_unmeasured_consequence"
+  ],
+  "output": "Identity: medium (2 name tokens + footer phone match; no schema.org name on page)\nFetch status: ok\n\nSubject: Your services page lists two different phone numbers\n\nBody:\nThe services page lists 555-0143 in the header and 555-0198 in the footer. Prospects who try the wrong one and get no answer generally do not try again, which is quietly costing you calls every week. I do a $500 Narrative Decision Audit that works through a site's claims this way -- worth twenty minutes?\n\nPatrick\n\nClaim table\n| Claim | Source in prospect_record |\n| --- | --- |\n| header lists 555-0143 | Observations, line 2 |\n| footer lists 555-0198 | Observations, line 3 |\n\nCompliance status: NOT SATISFIED -- no postal address, no unsubscribe URL, no verified sending domain.\nSend status: NOT SENDABLE (Gate 2 NO-GO).\n"
+}

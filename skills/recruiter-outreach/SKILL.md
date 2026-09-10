@@ -32,6 +32,7 @@ output_checks:
   - check: claims_have_sources
     section: Evidence table
   - check: forbid_perception_language
+  - check: forbid_unmeasured_consequence
   - check: forbid_flattery
   - check: forbid_hype
   - check: forbid_email_address

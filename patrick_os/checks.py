@@ -157,8 +157,19 @@ PERCEPTION = re.compile(
     r"looks?\s+like|seems?\s+(?:like|to)|comes?\s+across|reads?\s+as|"
     r"(?:a|the|new|potential|prospective)\s+(?:visitor|customer|reader|prospect|candidate)s?\s+"
     r"(?:will|would|may|might|can|could|tends?\s+to|assume|think|feel|conclude|see|notice|wonder)|"
-    r"(?:customers?|visitors?|readers?|prospects?|candidates?|people)\s+"
-    r"(?:will|would|may|might)\s+\w+|"
+    # "Visitors will assume" was caught; "Visitors landing on that page will
+    # assume" was not, because this branch demanded adjacency. Measured
+    # 2026-09-09. A participial phrase is the cheapest possible evasion, so
+    # allow a bounded run of words before the modal.
+    # "Visitors will assume" was caught; "Visitors landing on that page will
+    # assume" was not, because this branch demanded adjacency. Widened
+    # 2026-09-09 -- but only across a participial or relative clause. An
+    # unrestricted gap matched "customer list or an invoice count would settle
+    # it", which ascribes nothing to anybody; the clause requirement is what
+    # separates a subject from a noun that merely precedes a modal.
+    r"(?:customers?|visitors?|readers?|prospects?|candidates?|people)\b"
+    r"(?:\s+(?:who|that|which)\b[^.!?\n]{0,30}?|\s+\w+ing\b[^.!?\n]{0,30}?)?"
+    r"\s(?:will|would|may|might)\s+\w+|"
     r"gives?\s+the\s+impression|creates?\s+the\s+impression|"
     # "To a new visitor, that looks like a copy-paste error" -- the construction
     # must actually ascribe a perception. Requiring the verb is what separates it
@@ -190,6 +201,49 @@ def forbid_perception_language(text, config):
         )
     ]
 
+
+
+# G-002 forbids "customer behavior, customer perception, or commercial
+# consequence that was not measured". forbid_perception_language implements the
+# perception clause. This is the consequence clause, which until 2026-09-09 was
+# stated in the rule and enforced nowhere: "that is quietly costing you calls
+# every week" passed clean. An unmeasured revenue claim is also the most
+# commercially tempting sentence in any outreach draft, so it is the clause most
+# likely to be exercised.
+CONSEQUENCE = re.compile(
+    r"\b("
+    r"cost(?:s|ing)?\s+(?:you|them)\b|"
+    r"los(?:e|es|ing)\s+(?:you|them)\b|"
+    r"you(?:'re|\sare)\s+los(?:ing|t)\b|"
+    r"miss(?:es|ing)?\s+out\s+on\b|"
+    r"leav(?:e|es|ing)\s+money\s+on\s+the\s+table|"
+    r"(?:book|go|shop|buy)\s+elsewhere|take\s+their\s+business\s+elsewhere|"
+    r"(?:turn|driv)(?:s|es|ing)?\s+(?:away|off)\s+"
+    r"(?:customers?|patients?|visitors?|prospects?|clients?|business)|"
+    r"more\s+(?:bookings?|calls?|leads?|customers?|patients?|revenue|sales|conversions?)|"
+    r"(?:increase|boost|improve|lift|grow|double|drive)\s+(?:your\s+)?"
+    r"(?:bookings?|calls?|leads?|conversions?|revenue|sales|traffic|business)|"
+    r"hurt(?:s|ing)?\s+your\s+(?:conversion|revenue|bookings?|sales|business)"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+@check("forbid_unmeasured_consequence", BLOCKING)
+def forbid_unmeasured_consequence(text, config):
+    """G-002, consequence clause. Nobody measured the revenue. State what the
+    artifact does; do not price the reader's loss on their behalf."""
+    found = _hits(_voice(text, config), CONSEQUENCE)
+    if not found:
+        return []
+    return [
+        Finding(
+            "forbid_unmeasured_consequence",
+            BLOCKING,
+            "asserts a commercial consequence nobody measured",
+            evidence=sorted(set(found))[:5],
+        )
+    ]
 
 
 EMAIL = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.]{2,}\b")

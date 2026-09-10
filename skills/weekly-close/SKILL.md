@@ -15,6 +15,7 @@ output_checks:
   - check: counts_are_numeric
   - check: forbid_hype
   - check: forbid_perception_language
+  - check: forbid_unmeasured_consequence
   - check: forbid_intervention_proposal
 inputs:
   - name: projects

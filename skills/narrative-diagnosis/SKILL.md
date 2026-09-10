@@ -17,6 +17,7 @@ output_checks:
     sources: evidence_material
   - check: forbid_intervention_proposal
   - check: forbid_perception_language
+  - check: forbid_unmeasured_consequence
   - check: forbid_hype
   - check: counts_are_numeric
     section: Hidden problem

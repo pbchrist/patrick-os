@@ -23,6 +23,7 @@ output_checks:
   - check: forbid_other_mechanisms
     allow: positioning
   - check: forbid_perception_language
+  - check: forbid_unmeasured_consequence
   - check: forbid_manufactured_evidence
   - check: forbid_hype
   - check: forbid_flattery

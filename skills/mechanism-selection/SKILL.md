@@ -18,6 +18,7 @@ output_checks:
     sections: Profile|Field notes|Uncertain
   - check: forbid_intervention_proposal
   - check: forbid_perception_language
+  - check: forbid_unmeasured_consequence
   - check: forbid_hype
 inputs:
   - name: diagnosis
