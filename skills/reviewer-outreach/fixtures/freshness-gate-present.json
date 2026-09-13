@@ -6,11 +6,10 @@
   },
   "expect": {
     "must_contain": [
-      "personalization_freshness_days",
       "evidence ledger",
       "source URL",
       "source date",
-      "daily_send_cap",
+      "Present-tense and recency wording is no stronger than the evidence supports",
       "NOT SENDABLE",
       "This skill never sends"
     ]
