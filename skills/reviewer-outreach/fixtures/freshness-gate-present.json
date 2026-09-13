@@ -1,0 +1,18 @@
+{
+  "name": "freshness-gate-present",
+  "inputs": {
+    "reviewer_record": "Reviewer directory row plus live-site URLs",
+    "project_facts": "Gate of Nyandor reviewer outreach facts"
+  },
+  "expect": {
+    "must_contain": [
+      "personalization_freshness_days",
+      "evidence ledger",
+      "source URL",
+      "source date",
+      "daily_send_cap",
+      "NOT SENDABLE",
+      "This skill never sends"
+    ]
+  }
+}
