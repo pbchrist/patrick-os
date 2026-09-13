@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "project": "gate-of-nyandor-reviewer-outreach",
+  "sender_account_label": "Nyandor",
+  "daily_send_cap": 4,
+  "personalization_freshness_days": 60,
+  "require_live_policy_check": true,
+  "require_current_activity_check": true,
+  "require_personalization_evidence": true,
+  "require_prior_contact_check": true,
+  "require_explicit_send_authorization": true,
+  "require_tracking_writeback": true,
+  "require_side_by_side_cover": true,
+  "attachment_max_bytes": 500000,
+  "forbid_present_tense_claim_from_stale_source": true,
+  "forbid_book_one_dismissal": true,
+  "forbid_em_dash": true
+}
