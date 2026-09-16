@@ -1,0 +1,17 @@
+{
+  "name": "reply-reconciliation-present",
+  "inputs": {
+    "reviewer_record": "Canonical All Reviewers (351) row",
+    "project_facts": "Gate of Nyandor reviewer outreach facts"
+  },
+  "expect": {
+    "must_contain": [
+      "Reconcile replies before choosing new recipients",
+      "Human-reported replies",
+      "Response",
+      "Follow-up/Other",
+      "verify the tracker writeback",
+      "Nyandor Gmail"
+    ]
+  }
+}
