@@ -1,8 +1,18 @@
 {
-  "version": 3,
+  "version": 4,
   "project": "gate-of-nyandor-reviewer-outreach",
   "sender_account_label": "Nyandor",
   "canonical_tracker_sheet": "All Reviewers (351)",
+  "auto_invoke_on_reviewer_send_intent": true,
+  "send_intent_examples": [
+    "send",
+    "send more",
+    "send N more",
+    "do another batch",
+    "reach out to reviewers",
+    "email reviewers"
+  ],
+  "explicit_skill_name_not_required": true,
   "forbid_helper_tabs_for_contact_state": true,
   "require_live_policy_check": true,
   "require_current_activity_check": true,
