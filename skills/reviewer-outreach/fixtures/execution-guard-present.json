@@ -1,0 +1,18 @@
+{
+  "name": "execution-guard-present",
+  "inputs": {
+    "reviewer_record": "Canonical All Reviewers (351) row plus Gmail history",
+    "project_facts": "Gate of Nyandor reviewer outreach facts with authorized batch ceiling"
+  },
+  "expect": {
+    "must_contain": [
+      "All Reviewers (351)",
+      "Nyandor Gmail sent history",
+      "writeback",
+      "verify the write",
+      "hard maximum",
+      "There is no compensating send",
+      "NOT SENDABLE"
+    ]
+  }
+}
