@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "project": "gate-of-nyandor-reviewer-outreach",
   "sender_account_label": "Nyandor",
   "canonical_tracker_sheet": "All Reviewers (351)",
@@ -22,6 +22,14 @@
     "canonical_tracker",
     "nyandor_gmail_sent"
   ],
+  "require_reply_reconciliation_before_batch": true,
+  "require_reply_writeback_on_observed_reply": true,
+  "reply_source": "nyandor_gmail",
+  "reply_writeback_fields": [
+    "Response",
+    "Notes"
+  ],
+  "human_handles_reply_content_does_not_disable_tracking": true,
   "require_explicit_send_authorization": true,
   "require_tracking_writeback": true,
   "require_writeback_before_next_send": true,
