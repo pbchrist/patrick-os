@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "project": "gate-of-nyandor-reviewer-outreach",
   "sender_account_label": "Nyandor",
   "canonical_tracker_sheet": "All Reviewers (351)",
@@ -40,5 +40,20 @@
   "require_side_by_side_cover": true,
   "forbid_current_claim_without_current_evidence": true,
   "forbid_book_one_dismissal": true,
-  "forbid_em_dash": true
+  "forbid_em_dash": true,
+  "jev_gate_profile": "reviewer-outreach",
+  "require_jev_candidate_gate": true,
+  "require_jev_draft_gate": true,
+  "jev_max_batch_items": 20,
+  "jev_compact_state_only": true,
+  "jev_may_not_override_deterministic_state": true,
+  "jev_deterministic_authority_fields": [
+    "canonical_tracker_status",
+    "prior_contact",
+    "nyandor_gmail_sent",
+    "existing_draft",
+    "explicit_send_authorization",
+    "post_send_writeback"
+  ],
+  "jev_unavailable_action": "escalate_semantic_gate_not_auto_pass"
 }

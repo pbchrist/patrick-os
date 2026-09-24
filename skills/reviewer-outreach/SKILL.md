@@ -1,11 +1,8 @@
 ---
 name: reviewer-outreach
-version: 5
+version: 6
 purpose: Research, qualify, draft, and safely execute reviewer outreach while keeping the canonical tracker synchronized with sends and replies.
 task_class: draft.outreach
-stage: outreach
-mechanism_agnostic: true
-investment_tier: pilot
 channel: email
 project: gate-of-nyandor-reviewer-outreach
 outputs: send_packet
@@ -40,27 +37,44 @@ The skill also owns reply-state reconciliation. A reviewer reply observed in Nya
 ## Prerequisites
 
 - Read `config/reviewer-outreach.json` first.
+- Read `config/reviewer-outreach-jev.json` before semantic qualification or draft QA.
 - Use `All Reviewers (351)` as the sole canonical tracker.
-- Nyandor Gmail inbox and sent history must be available for reply reconciliation and duplicate checks.
+- Nyandor Gmail inbox, sent history, and current drafts must be available for reconciliation and duplicate checks.
 - Live web access must be available for policy/activity verification before a new recipient is qualified.
+- JEV never decides facts already known from the tracker or Gmail. Prior contact, duplicate state, existing drafts, send authorization, attachment/link/signature presence, and tracker writeback remain deterministic.
+- JEV receives compact evidence records, not raw browser dumps, whole mailboxes, whole spreadsheets, or chat history. Up to 20 work items are evaluated in one System One request per phase.
+- If JEV is unavailable or uncertain, escalate that semantic decision to a reasoning model or human. Never convert an unavailable gate into an automatic pass.
 
 ## Procedure
 
-1. **Reconcile replies before choosing new recipients.** Search Nyandor Gmail for replies from previously contacted reviewers that are not yet reflected in `All Reviewers (351)`. Match each reply to the canonical row. Update `Response` to `Yes`, `No`, or `Follow-up/Other` as supported by the message, and append a concise dated note. Verify the tracker writeback before selecting any new recipient.
-2. **Honor human-reported replies immediately.** If the human says a reviewer replied, treat that as an instruction to update the canonical tracker now. Do not wait for a later batch. If the stated outcome is clear, write it. If the outcome is ambiguous, read the message before classifying it.
-3. **Check prior contact in both authoritative sources.** Before every send, search `All Reviewers (351)` and Nyandor Gmail sent history. If either shows prior contact, decline, opt-out, suppression, or a previous send, the reviewer is `NOT SENDABLE` unless the human explicitly requested a follow-up. If the two sources disagree, stop.
-4. **Verify the live policy.** Open the current review policy/contact page. Record whether requests are open, accepted genres/formats, series policy if stated, and the required contact route.
-5. **Honor the route.** If the reviewer requires a form, mark `FORM REQUIRED`. Do not invent an email route because an address exists elsewhere.
-6. **Verify current activity.** Find current evidence useful for personalization. Do not turn old evidence into a present-tense claim.
-7. **Build an evidence ledger.** Every reviewer-specific factual claim must map to a source URL and source date when available.
-8. **Check fit.** Confirm current evidence supports adult fantasy, epic fantasy, speculative fantasy, or another defensible fit.
-9. **Draft from evidence.** The opening must be specific enough that it could not be pasted unchanged to another reviewer.
-10. **Use approved book architecture.** Book One follows the failure path; Book Two follows the success path; consequences bleed between timestreams. Do not dismiss Book One as irrelevant.
-11. **Use the approved package.** Nyandor sender identity, live BookFunnel link supplied at runtime, side-by-side covers, Nyandor author signature.
-12. **Apply style gates.** No em dash. No fake urgency. No demand for a positive review. No launch-pressure language. One recipient per message.
-13. **Re-check immediately before send.** Re-run the canonical-sheet and Gmail duplicate check immediately before the send action.
-14. **Write back immediately after send.** After a successful send, write `Contacted`, the actual send date, and a concise execution note to `All Reviewers (351)`. Read the row back and verify it before any next send.
-15. **Enforce the batch ceiling literally.** If the human authorizes N sends, N is the hard maximum number of send actions. A duplicate, failed writeback, or other error does not authorize a replacement or compensating send. Stop the batch.
+1. **Reconcile replies once before the batch.** Search Nyandor Gmail for replies from previously contacted reviewers not yet reflected in `All Reviewers (351)`. Match and write back `Response` plus a concise dated note, then verify the writes.
+2. **Read the candidate window once.** Pull the relevant canonical rows in one batch and build a candidate pool. Do not re-read the same tracker row reviewer by reviewer.
+3. **Apply deterministic state filters in batches.** Batch-check canonical contact state, Nyandor Sent Mail, and current drafts. Exclude prior contacts, duplicate reviewer identities, existing current drafts, suppressed/declined records, and explicit route conflicts before spending semantic judgment on them. JEV may not override any of these facts.
+4. **Gather only compact live evidence for viable candidates.** For each surviving reviewer capture the current policy/route, one or two recent relevant reviews/posts, dates, a concrete taste signal, and source URLs. Do not retain full pages when a short sourced evidence packet establishes the fact.
+5. **Run the JEV candidate gate as one batch.** Evaluate up to 20 compact reviewer records in one `candidate` phase request. The parallel questions judge current-policy support, current activity, Nyandor fit, and whether the evidence is specific enough to personalize. `block` means replace the candidate; `review` means a reasoning model or human resolves only that item; `pass` advances it. Exact state from step 3 remains authoritative.
+6. **Draft from the approved evidence packets.** The opening must be reviewer-specific. Use the approved Nyandor architecture: all-cat civilization played straight, the Voyd, Book One failure path, Book Two success path, and the realities bleeding together. Preserve campaign-wide links, signature, and cover handling as standardized components rather than rediscovering them per reviewer.
+7. **Run the JEV draft gate as one batch.** Evaluate up to 20 completed drafts in one `draft` phase request. It judges reviewer-specificity, evidence support, story-engine clarity, human tone, and semantic policy compliance. A failed semantic gate never grants itself permission to rewrite facts; repair or escalate the affected draft only.
+8. **Run deterministic draft QA in bulk.** Verify exact recipient, DRAFT state, one signature, required hyperlinks, cover attachment where allowed, no em dash, no duplicate current draft, and any reviewer-specific no-copy-until-reply exception. These checks are code/state authority, not JEV questions.
+9. **Create or update the Gmail drafts in compact batches.** Leave every message as DRAFT unless the human explicitly authorizes sending in the current interaction. Confirm the requested final draft count before reporting completion.
+10. **Honor human-reported replies immediately.** If the human says a reviewer replied, update the canonical tracker now. If the outcome is ambiguous, read the message before classifying it.
+11. **Before every actual send, re-check the authoritative state.** Search `All Reviewers (351)` and Nyandor Gmail sent history again. If either shows prior contact, decline, suppression, duplicate identity, or a state conflict, do not send unless the human explicitly requested a follow-up.
+12. **Honor the current contact route.** If a reviewer requires a form, the final execution decision is `FORM REQUIRED`; do not invent an email route because an address exists elsewhere.
+13. **Send only with explicit current authorization.** Drafting, JEV passes, research, and QA are not send permission.
+14. **Write back immediately after each successful send.** Write `Contacted`, the actual send date, and a concise execution note to `All Reviewers (351)`. Read the row back and verify it before another send action.
+15. **Enforce an authorized send ceiling literally.** If the human authorizes N sends, N is the hard maximum number of send actions. A duplicate, failure, or writeback problem does not authorize a compensating send. Stop the live-send batch on an execution error.
+
+### Why the JEV split exists
+
+The batch should not consume a conversation by asking a full reasoning model to repeatedly decide small semantic questions. Code owns exact facts and execution. JEV supplies typed semantic judgments over compact evidence. The writer receives only the surviving evidence packet and the decision result, not the entire audit trail.
+
+### Legacy safety invariants retained verbatim
+
+- **Reconcile replies before choosing new recipients.** This is still the first batch-level state operation.
+- After reply updates, **verify the tracker writeback** before recipient selection continues.
+- Every personalization evidence record keeps the **source date** when one is available.
+- **Present-tense and recency wording is no stronger than the evidence supports.**
+- **This skill never sends** by itself. It prepares and judges work; external execution still requires explicit human authorization.
+- A failed, duplicate, or aborted live send does not create extra quota. **There is no compensating send.**
 
 ## Outputs
 
@@ -93,6 +107,10 @@ A reviewer packet or execution decision containing:
 - No em dash appears in the outreach message.
 - A successful send cannot be followed by another send until tracker writeback is verified.
 - A batch never exceeds the human-authorized send count.
+- Candidate semantic qualification is evaluated from compact evidence through the JEV candidate gate when available.
+- Completed drafts pass the JEV draft gate or are explicitly escalated; missing JEV service is never treated as a pass.
+- JEV never overrides canonical tracker/Gmail facts or grants send authority.
+- Up to 20 items are fanned out in one JEV request per phase instead of one semantic model call per reviewer.
 
 ## Failure modes
 

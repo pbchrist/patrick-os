@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "model": "jev-latest",
+  "max_batch_items": 20,
+  "purpose": "Compact semantic gates for Gate of Nyandor reviewer outreach. Exact state and execution authority remain deterministic.",
+  "phases": {
+    "candidate": {
+      "questions": {
+        "policy_supports_outreach": {
+          "type": "noul",
+          "instructions": "Based only on the current policy evidence in this item, is there affirmative support that this reviewer currently accepts the proposed review-request contact route? Treat ambiguity, stale evidence, closed requests, or a form-only policy when email is proposed as no.",
+          "criteria": {
+            "true": "Current evidence affirmatively supports using the proposed route for a review request.",
+            "false": "The route is forbidden, requests are closed, the evidence is stale/ambiguous, or acceptance is not established."
+          },
+          "pass_min": 0.82,
+          "review_min": 0.6
+        },
+        "current_activity_supported": {
+          "type": "noul",
+          "instructions": "Based only on the dated current-activity evidence in this item, does it support treating the reviewer or publication as currently active enough for outreach now?",
+          "criteria": {
+            "true": "Recent dated evidence supports current activity.",
+            "false": "Evidence is absent, undated, materially stale, or indicates inactivity."
+          },
+          "pass_min": 0.8,
+          "review_min": 0.58
+        },
+        "nyandor_fit": {
+          "type": "score",
+          "instructions": "Rate how well the reviewer's demonstrated reading taste fits The Gate of Nyandor, using only the supplied evidence. Do not infer taste from a generic fantasy label alone.",
+          "criteria": [
+            "Weak or contradicted fit: evidence points away from the book or gives no meaningful taste signal.",
+            "Plausible fit: at least one concrete taste signal supports outreach, but the match is ordinary or incomplete.",
+            "Strong fit: multiple concrete signals or one unusually specific signal aligns with Nyandor's actual story engine, tone, worldbuilding, or themes."
+          ],
+          "pass_min": 1.05,
+          "review_min": 0.7
+        },
+        "personalization_evidence_specific": {
+          "type": "noul",
+          "instructions": "Is the supplied evidence specific enough to support at least two genuinely reviewer-specific opening sentences without inventing familiarity or merely restating a review policy?",
+          "criteria": {
+            "true": "A concrete named review/post, reaction, preference, or taste signal can support a tailored opening.",
+            "false": "Only generic genre tags, database facts, policy language, or unsupported praise are available."
+          },
+          "pass_min": 0.84,
+          "review_min": 0.62
+        }
+      }
+    },
+    "draft": {
+      "questions": {
+        "reviewer_specific_opening": {
+          "type": "noul",
+          "instructions": "Does the draft opening use the supplied reviewer evidence specifically enough that at least two opening sentences would be implausible to send unchanged to another reviewer?",
+          "criteria": {
+            "true": "The opening is anchored in concrete reviewer-specific evidence and sounds individually addressed.",
+            "false": "The opening is generic, policy-based, flattering without evidence, or reusable with only the name changed."
+          },
+          "pass_min": 0.84,
+          "review_min": 0.62
+        },
+        "reviewer_claims_supported": {
+          "type": "noul",
+          "instructions": "Are all factual claims the draft makes about this reviewer or publication supported by the supplied evidence ledger, with no invented preference, recency, praise, or familiarity?",
+          "criteria": {
+            "true": "Every reviewer-specific factual claim is supported by the supplied evidence.",
+            "false": "At least one reviewer-specific claim exceeds, embellishes, or contradicts the evidence."
+          },
+          "pass_min": 0.9,
+          "review_min": 0.72
+        },
+        "nyandor_engine_clear": {
+          "type": "noul",
+          "instructions": "Does the draft communicate the actual Nyandor hook clearly and naturally: a civilization populated entirely by cats and played straight, the Voyd as a forbidden gate into choices, Book One's failure path versus Book Two's success path, and the two realities bleeding together?",
+          "criteria": {
+            "true": "All four required story-engine elements are understandable and connected, not merely dropped as genre tags.",
+            "false": "One or more required elements are absent, vague, buried, or reduced to a tag list."
+          },
+          "pass_min": 0.88,
+          "review_min": 0.68
+        },
+        "human_tone": {
+          "type": "score",
+          "instructions": "Rate how naturally this reads as a sharp indie author writing personally to one serious reader, rather than as generic AI, corporate copy, or a templated sales sequence.",
+          "criteria": [
+            "Canned or synthetic: conspicuous AI/marketing phrasing, abstract filler, or template voice dominates.",
+            "Serviceable human note: mostly natural and direct, with minor generic or over-polished phrasing.",
+            "Distinctly human and specific: concise, concrete, conversational, confident, and clearly written to this reader."
+          ],
+          "pass_min": 1.08,
+          "review_min": 0.76
+        },
+        "draft_respects_policy": {
+          "type": "noul",
+          "instructions": "Given the supplied current reviewer policy and proposed route, does the draft comply with those instructions, including whether links, attachments, or a wait-for-reply step are allowed?",
+          "criteria": {
+            "true": "The draft follows the supplied policy and route without adding a forbidden link, attachment, or premature review copy.",
+            "false": "The draft conflicts with the supplied policy or route, or policy evidence is too ambiguous to establish compliance."
+          },
+          "pass_min": 0.9,
+          "review_min": 0.72
+        }
+      }
+    }
+  }
+}

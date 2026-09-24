@@ -19,7 +19,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import decisions, domains, feedback, judging, retrieval, runner, skills, testing, voice
+from . import decisions, domains, feedback, jev, judging, retrieval, runner, skills, testing, voice
 from .router import TaskSpec, resolve
 from .router import table as route_table
 
@@ -550,6 +550,42 @@ def cmd_pipeline(args):
     return 0
 
 
+def cmd_jev(args):
+    """Run compact TypeSafe/Jev semantic gates. No execution action lives here."""
+    if args.action == "status":
+        profile = jev.load_profile(args.profile, args.root)
+        print(f"profile:    {args.profile} v{profile.get('version')}")
+        print(f"model:      {profile.get('model', jev.DEFAULT_MODEL)}")
+        print(f"configured: {'yes' if jev.configured() else 'NO'}")
+        print(f"batch max:  {profile.get('max_batch_items', 20)}")
+        if not jev.configured():
+            print("key:        TYPESAFE_API_KEY is not present; execute fails closed")
+        return 0
+
+    raw = sys.stdin.read() if args.state == "-" else _read(args.state)
+    try:
+        state = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise jev.JevError(f"state file is not valid JSON: {error}") from error
+    result = jev.gate(
+        args.profile, args.phase, state, execute=args.execute, base=args.root
+    )
+    if args.json:
+        print(json.dumps(result, indent=2, sort_keys=True, default=str))
+    else:
+        print(f"Jev gate:   {result['profile']} / {result['phase']}")
+        print(f"mode:       {result['mode']}")
+        print(f"model:      {result['model']}")
+        print(f"items:      {result['item_count']}")
+        print(f"questions:  {result['question_count']} (one batched request when executed)")
+        print(f"verdict:    {result['verdict'].upper()}")
+        for index, item in enumerate(result.get("items") or []):
+            blockers = item.get("deterministic_blockers") or []
+            detail = f" blockers={'; '.join(blockers)}" if blockers else ""
+            print(f"  [{index:02d}] {item['verdict'].upper()}{detail}")
+    return 1 if result.get("verdict") == "block" else 0
+
+
 def cmd_doctor(args):
     base = skills.root(args.root)
     print(f"root:          {base}")
@@ -723,6 +759,16 @@ def build_parser():
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_pipeline)
 
+    p = sub.add_parser("jev", help="TypeSafe/Jev semantic gates for compact decisions")
+    p.add_argument("action", choices=["status", "gate"])
+    p.add_argument("--profile", default="reviewer-outreach")
+    p.add_argument("--phase", choices=["candidate", "draft"])
+    p.add_argument("--state", help="JSON object/array file, or - for stdin")
+    p.add_argument("--execute", action="store_true",
+                   help="call TypeSafe; without this, only build and inspect the gate")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_jev)
+
     p = sub.add_parser("doctor", help="check the environment")
     p.add_argument("--probe", action="store_true",
                    help="actually test each provider's reachability")
@@ -755,13 +801,15 @@ def main(argv=None):
             parser.error("result record requires --" + ", --".join(missing))
         if args.action in {"show", "promote", "reject"} and not args.id:
             parser.error(f"feedback {args.action} requires an id")
+    if args.command == "jev" and args.action == "gate" and not (args.phase and args.state):
+        parser.error("jev gate requires --phase and --state")
     if args.command == "decision" and args.action == "add" and not args.title:
         parser.error("decision add requires --title")
     try:
         return args.func(args)
     except (skills.SkillError, voice.VoiceError, feedback.FeedbackError,
             decisions.DecisionError, route_table.RouteTableError, runner.RunError,
-            judging.JudgeError, retrieval.RetrievalError,
+            judging.JudgeError, jev.JevError, retrieval.RetrievalError,
             domains.DomainError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2

@@ -1,0 +1,17 @@
+{
+  "name": "jev-batch-gates-present",
+  "inputs": {
+    "reviewer_record": "Canonical All Reviewers (351) row plus compact live evidence",
+    "project_facts": "Gate of Nyandor reviewer outreach facts"
+  },
+  "expect": {
+    "must_contain": [
+      "Run the JEV candidate gate as one batch",
+      "Run the JEV draft gate as one batch",
+      "JEV may not override any of these facts",
+      "compact evidence records",
+      "one System One request per phase",
+      "Drafting, JEV passes, research, and QA are not send permission"
+    ]
+  }
+}
