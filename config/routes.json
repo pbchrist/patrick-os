@@ -188,6 +188,19 @@
       "_why": "Mining public forums is high-volume and low-stakes, and local inference is free and fast. Keep it on our own hardware."
     },
     {
+      "task_class": "draft.reviewer-outreach",
+      "prefer": [
+        "codex-cli",
+        "hermes-copilot"
+      ],
+      "deny": [
+        "local-qwen",
+        "local-qwen-36"
+      ],
+      "min_quality": 4,
+      "_why": "Reviewer outreach is human-facing personalized prose. Local models are deliberately excluded from the writer path; JEV handles compact semantic gates, while a strong cloud writer produces the copy."
+    },
+    {
       "task_class": "draft",
       "prefer": [
         "codex-cli",

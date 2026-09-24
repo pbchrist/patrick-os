@@ -55,5 +55,7 @@
     "explicit_send_authorization",
     "post_send_writeback"
   ],
-  "jev_unavailable_action": "escalate_semantic_gate_not_auto_pass"
+  "jev_unavailable_action": "escalate_semantic_gate_not_auto_pass",
+  "require_non_local_writer": true,
+  "forbid_local_model_for_outreach_copy": true
 }

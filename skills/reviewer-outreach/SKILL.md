@@ -2,7 +2,7 @@
 name: reviewer-outreach
 version: 6
 purpose: Research, qualify, draft, and safely execute reviewer outreach while keeping the canonical tracker synchronized with sends and replies.
-task_class: draft.outreach
+task_class: draft.reviewer-outreach
 channel: email
 project: gate-of-nyandor-reviewer-outreach
 outputs: send_packet

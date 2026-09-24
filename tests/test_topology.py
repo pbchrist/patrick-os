@@ -89,6 +89,17 @@ class IndependenceRankingTest(unittest.TestCase):
         self.assertGreaterEqual(len(free), 2, f"only these free vendors: {free}")
         self.assertIn("local-llamacpp", free)
 
+    def test_reviewer_outreach_never_routes_to_local_models(self):
+        """ARC copy is high-touch human-facing prose; local Qwen may gate nothing and write nothing."""
+        t = table()
+        from patrick_os.router import TaskSpec, resolve
+        decision = resolve(TaskSpec("draft.reviewer-outreach"), t)
+        keys = [c.key for c in decision.candidates]
+        self.assertEqual(decision.route_name, "draft.reviewer-outreach")
+        self.assertNotIn("local-qwen", keys)
+        self.assertNotIn("local-qwen-36", keys)
+        self.assertEqual(keys[0], "codex-cli")
+
     def test_no_route_prefers_a_provider_that_requires_a_purchase(self):
         raw = json.loads((REPO / "config" / "routes.json").read_text())
         paid = {k for k, c in raw["providers"].items() if c.get("cost_per_1k", 0) > 0}
