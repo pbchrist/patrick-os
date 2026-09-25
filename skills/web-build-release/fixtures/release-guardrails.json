@@ -1,0 +1,20 @@
+{
+  "name": "release-guardrails-present",
+  "inputs": {
+    "repo": "pbchrist/iconic-intelligence",
+    "change_brief": "Batch requested website changes, verify staging, then wait for production approval.",
+    "deployment_target": "staging"
+  },
+  "expect": {
+    "must_contain": [
+      "development-cycle budget",
+      "320, 360, 375, 390, 430, 768, 834, 900, 1024, 1116, 1280, 1440",
+      "exact commit SHA",
+      "generic Railway `redeploy`",
+      "explicit production approval",
+      "public staging URL",
+      "Never kill the user's normal browser",
+      "PRODUCTION LIVE"
+    ]
+  }
+}
